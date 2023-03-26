@@ -1,58 +1,66 @@
 import Foundation
 
-public protocol DependencyKey: Hashable {
-    typealias Value = String
-    
-    var value: Value { get }
-}
-
-// TODO: use class name as key
-
 public struct DependencyContainer {
+
+    private typealias Key = String
     
     public struct ResolveError: Error {
         public let key: String
         public let classDescription: String
     }
     
-    private static var bootstraps = [DependencyKey.Value: (Self.Type) -> Any]()
-    private static var dependencies = [DependencyKey.Value: Any]()
-    
-//    public static func add<T>(isEager: Bool = false, bootstrap: @escaping () -> T) {
-//        let key = ""
-//        add(key, isEager: isEager, bootstrap: { _ in bootstrap() })
-//    }
-    
-    public static func add<Key: DependencyKey, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping () -> T) {
-        add(key, isEager: isEager, bootstrap: { _ in bootstrap() })
+    enum RegisterError: Error {
+        case alreadyRegistered(key: String)
     }
     
-    public static func add<Key: DependencyKey, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping (Self.Type) -> T) {
-        // If dependency for key already exists, replace it directly
-        if isEager || dependencies.keys.contains(key.value) {
-            dependencies[key.value] = bootstrap(self)
+    private static var bootstraps = [Key: (Self.Type) -> Any]()
+    private static var dependencies = [Key: Any]()
+    
+    public static func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try add(key, isEager: isEager, bootstrap: { _ in bootstrap() })
+    }
+    
+    public static func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping (Self.Type) -> T) throws {
+        let key = keyValue(for: key)
+        
+        let allKeys = Set(dependencies.keys).union(bootstraps.keys)
+        guard !allKeys.contains(key) else {
+            throw RegisterError.alreadyRegistered(key: key)
+        }
+        
+        if isEager {
+            dependencies[key] = bootstrap(self)
         } else {
-            bootstraps[key.value] = bootstrap
+            bootstraps[key] = bootstrap
         }
     }
     
-    public static func resolve<Key: DependencyKey, T>(_ key: Key) throws -> T {
-        if let dependency = dependencies[key.value] as? T {
+    public static func resolve<Key: Hashable, T>(_ key: Key) throws -> T {
+        let key = keyValue(for: key)
+        
+        if let dependency = dependencies[key] as? T {
             return dependency
         }
         
-        if let bootstrap = bootstraps.removeValue(forKey: key.value),
+        if let bootstrap = bootstraps.removeValue(forKey: key),
             let dependency = bootstrap(self) as? T {
-            dependencies[key.value] = dependency
+            dependencies[key] = dependency
             return dependency
         }
         
-        throw ResolveError(key: key.value, classDescription: String(describing: T.self))
+        throw ResolveError(key: key, classDescription: String(describing: T.self))
     }
     
     @discardableResult
-    public static func remove<Key: DependencyKey>(_ key: Key) -> Bool {
-        let key = key.value
+    public static func remove<Key: Hashable>(_ key: Key) -> Bool {
+        let key = keyValue(for: key)
+        
         return dependencies.removeValue(forKey: key) != nil || bootstraps.removeValue(forKey: key) != nil
+    }
+    
+    // MARK: - Helper
+    
+    private static func keyValue<Key: Hashable>(for key: Key) -> Self.Key {
+        String(key.hashValue)
     }
 }

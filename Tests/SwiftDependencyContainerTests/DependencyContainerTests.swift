@@ -4,17 +4,15 @@ import SwiftDependencyContainer
 class DependencyContainerTests: XCTestCase {
     
     let sut = DependencyContainer.self
-    
-    typealias Key = DependencyContainer.Key
-    
+        
     override func setUp() {
-        Key.allCases.forEach {
+        TestKey.allCases.forEach {
             sut.remove($0)
         }
     }
     
-    func test_bootstrapOnDemand() {
-        sut.registerSingletonImpl1()
+    func test_bootstrapOnDemand() throws {
+        try sut.registerSingletonImpl1()
         
         let start = Date()
         
@@ -23,8 +21,8 @@ class DependencyContainerTests: XCTestCase {
         XCTAssertTrue(start < singleton.created)
     }
     
-    func test_eagerBootstrap() {
-        sut.registerEagerSingleton()
+    func test_eagerBootstrap() throws {
+        try sut.registerSingletonImpl1Eager()
         
         let start = Date()
         
@@ -34,30 +32,35 @@ class DependencyContainerTests: XCTestCase {
     }
     
     func test_singleInstance() throws {
-        sut.registerSingletonImpl1()
+        try sut.registerSingletonImpl1()
         
         XCTAssertTrue(sut.resolveSingleton(.singleton1) === sut.resolveSingleton(.singleton1))
         XCTAssertTrue(sut.resolveSingletonImpl1() === sut.resolveSingleton(.singleton1))
         XCTAssertTrue(sut.resolveSingletonImpl1() === sut.resolveSingletonImpl1())
     }
     
-    func test_replaceInstanceForSameKey() {
-        sut.registerSingletonImpl1()
+    func test_registerAfterBootstrapedsFails() throws {
+        try sut.registerSingletonImpl1Eager()
         
-        let singletonV1 = sut.resolveSingletonImpl1()
-        
-        sut.registerSingletonImpl1()
-        
-        let singletonV2 = sut.resolveSingletonImpl1()
-        
-        XCTAssertNotEqual(singletonV1.created, singletonV2.created)
-        XCTAssertFalse(singletonV1 === singletonV2)
+        do {
+            try sut.registerSingletonImpl1()
+            XCTFail("Should fail, dependency for key is already registered.")
+        } catch {}
     }
     
-    func test_constructorInjectOtherDepency() {
-        sut.registerSingletonImpl2()
+    func test_registerSameKeyTwiceFails() throws {
+        try sut.registerSingletonImpl1()
         
-        sut.add(Key.singleton1) {
+        do {
+            try sut.registerSingletonImpl1()
+            XCTFail("Should fail, dependency for key is already registered eager.")
+        } catch {}
+    }
+    
+    func test_constructorInjectOtherDepency() throws {
+        try sut.registerSingletonImpl2()
+        
+        try sut.add(TestKey.singleton1) {
             SingletonImpl2(other: $0.resolveSingleton(.singleton2))
         }
     }
@@ -74,12 +77,12 @@ class DependencyContainerTests: XCTestCase {
         }
     }
     
-    func test_removeRegisteredDepency() {
-        sut.registerEagerSingleton()
-        sut.registerSingletonImpl2()
+    func test_removeRegisteredDepency() throws {
+        try sut.registerSingletonImpl1Eager()
+        try sut.registerSingletonImpl2()
         
-        sut.remove(Key.singleton1)
-        sut.remove(Key.singleton2)
+        sut.remove(TestKey.singleton1)
+        sut.remove(TestKey.singleton2)
         
         XCTAssertNil(try? sut.resolve(using: .singleton1))
         XCTAssertNil(try? sut.resolve(using: .singleton2))
@@ -88,28 +91,26 @@ class DependencyContainerTests: XCTestCase {
 
 // MARK: - Helper
 
+enum TestKey: String, CaseIterable {
+    case singleton1
+    case singleton2
+}
+
 extension DependencyContainer {
     
-    enum Key: String, CaseIterable, DependencyKey {
-        case singleton1
-        case singleton2
-        
-        var value: Value { rawValue }
+    static func registerSingletonImpl1() throws {
+        try add(TestKey.singleton1) { SingletonImpl1() }
     }
     
-    static func registerSingletonImpl1() {
-        add(Key.singleton1) { SingletonImpl1() }
+    static func registerSingletonImpl2() throws {
+        try add(TestKey.singleton2) { SingletonImpl2(other: resolveSingletonImpl1()) }
     }
     
-    static func registerSingletonImpl2() {
-        add(Key.singleton2) { SingletonImpl2(other: resolveSingletonImpl1()) }
+    static func registerSingletonImpl1Eager() throws {
+        try add(TestKey.singleton1, isEager: true) { SingletonImpl1() }
     }
     
-    static func registerEagerSingleton() {
-        add(Key.singleton1, isEager: true) { SingletonImpl1() }
-    }
-    
-    static func resolveSingleton(_ key: Key) -> Singleton {
+    static func resolveSingleton(_ key: TestKey) -> Singleton {
         try! resolve(using: key)
     }
     
@@ -121,11 +122,11 @@ extension DependencyContainer {
         try! resolve(using: .singleton2)
     }
     
-    fileprivate static func add<T>(for key: Key, element: @escaping () -> T) {
-        add(key, bootstrap: element)
+    fileprivate static func add<T>(for key: TestKey, element: @escaping () -> T) throws {
+        try add(key, bootstrap: element)
     }
     
-    fileprivate static func resolve<T>(using key: Key) throws -> T {
+    fileprivate static func resolve<T>(using key: TestKey) throws -> T {
         try resolve(key)
     }
 }
