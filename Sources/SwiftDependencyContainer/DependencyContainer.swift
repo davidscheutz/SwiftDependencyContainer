@@ -2,7 +2,10 @@ import Foundation
 
 public struct DependencyContainer {
 
+    public typealias Resolver<T> = (Self.Type) throws -> T
+    
     private typealias Key = String
+    private typealias AnyResolver = Resolver<Any>
     
     public struct ResolveError: Error {
         public let key: String
@@ -13,15 +16,15 @@ public struct DependencyContainer {
         case alreadyRegistered(key: String)
     }
     
-    private static var bootstraps = [Key: (Self.Type) -> Any]()
+    private static var bootstraps = [Key: AnyResolver]()
     private static var dependencies = [Key: Any]()
     
     public static func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try add(key, isEager: isEager, bootstrap: { _ in bootstrap() })
     }
     
-    public static func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping (Self.Type) -> T) throws {
-        let key = keyValue(for: key)
+    public static func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+        let key = keyValue(from: key)
         
         let allKeys = Set(dependencies.keys).union(bootstraps.keys)
         guard !allKeys.contains(key) else {
@@ -29,7 +32,7 @@ public struct DependencyContainer {
         }
         
         if isEager {
-            dependencies[key] = bootstrap(self)
+            dependencies[key] = try bootstrap(self)
         } else {
             bootstraps[key] = bootstrap
         }
@@ -43,7 +46,7 @@ public struct DependencyContainer {
         }
         
         if let bootstrap = bootstraps.removeValue(forKey: key),
-            let dependency = bootstrap(self) as? T {
+            let dependency = try bootstrap(self) as? T {
             dependencies[key] = dependency
             return dependency
         }

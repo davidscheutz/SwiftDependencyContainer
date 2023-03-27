@@ -35,8 +35,6 @@ class DependencyContainerTests: XCTestCase {
         try sut.registerSingletonImpl1()
         
         XCTAssertTrue(sut.resolveSingleton(.singleton1) === sut.resolveSingleton(.singleton1))
-        XCTAssertTrue(sut.resolveSingletonImpl1() === sut.resolveSingleton(.singleton1))
-        XCTAssertTrue(sut.resolveSingletonImpl1() === sut.resolveSingletonImpl1())
     }
     
     func test_registerAfterBootstrapedsFails() throws {
@@ -84,8 +82,8 @@ class DependencyContainerTests: XCTestCase {
         sut.remove(TestKey.singleton1)
         sut.remove(TestKey.singleton2)
         
-        XCTAssertNil(try? sut.resolve(using: .singleton1))
-        XCTAssertNil(try? sut.resolve(using: .singleton2))
+        XCTAssertNil(try sut.resolve(using: .singleton1))
+        XCTAssertNil(try sut.resolve(using: .singleton2))
     }
 }
 
@@ -103,7 +101,7 @@ extension DependencyContainer {
     }
     
     static func registerSingletonImpl2() throws {
-        try add(TestKey.singleton2) { SingletonImpl2(other: resolveSingletonImpl1()) }
+        try add(TestKey.singleton2) { SingletonImpl2(other: try $0.resolve(using: .singleton1)) }
     }
     
     static func registerSingletonImpl1Eager() throws {
@@ -112,14 +110,6 @@ extension DependencyContainer {
     
     static func resolveSingleton(_ key: TestKey) -> Singleton {
         try! resolve(using: key)
-    }
-    
-    static func resolveSingletonImpl1() -> SingletonImpl1 {
-        try! resolve(using: .singleton1)
-    }
-    
-    static func resolveSingletonImpl2() -> SingletonImpl2 {
-        try! resolve(using: .singleton2)
     }
     
     fileprivate static func add<T>(for key: TestKey, element: @escaping () -> T) throws {
