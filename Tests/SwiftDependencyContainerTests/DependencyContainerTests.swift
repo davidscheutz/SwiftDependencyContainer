@@ -3,12 +3,10 @@ import SwiftDependencyContainer
 
 class DependencyContainerTests: XCTestCase {
     
-    let sut = DependencyContainer.self
+    var sut: DependencyContainer!
         
     override func setUp() {
-        TestKey.allCases.forEach {
-            sut.remove($0)
-        }
+        sut = .init()
     }
     
     func test_bootstrapOnDemand() throws {
@@ -121,23 +119,23 @@ enum TestKey: String, CaseIterable {
 
 extension DependencyContainer {
     
-    static func registerSingletonImpl1WithKey(id: String = "1", eager: Bool = false) throws {
+    func registerSingletonImpl1WithKey(id: String = "1", eager: Bool = false) throws {
         try add(TestKey.singleton1, isEager: eager) { SingletonImpl1(id: id) }
     }
     
-    static func registerSingletonImpl2WithKey(eager: Bool = false) throws {
+    func registerSingletonImpl2WithKey(eager: Bool = false) throws {
         try add(TestKey.singleton2, isEager: eager) { SingletonImpl2(other: try $0.resolve(using: .singleton1)) }
     }
     
-    static func resolveSingleton(_ key: TestKey) throws -> Singleton {
+    func resolveSingleton(_ key: TestKey) throws -> Singleton {
         try resolve(using: key)
     }
     
-    fileprivate static func add<T>(for key: TestKey, element: @escaping () -> T) throws {
+    fileprivate func add<T>(for key: TestKey, element: @escaping () -> T) throws {
         try add(key, bootstrap: element)
     }
     
-    fileprivate static func resolve<T>(using key: TestKey) throws -> T {
+    fileprivate func resolve<T>(using key: TestKey) throws -> T {
         try resolve(key)
     }
 }
