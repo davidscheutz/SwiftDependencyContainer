@@ -4,7 +4,7 @@ import SwiftDependencyContainer
 class DependencyContainerTests: XCTestCase {
     
     var sut: DependencyContainer!
-        
+    
     override func setUp() {
         sut = .init()
     }
@@ -104,9 +104,47 @@ class DependencyContainerTests: XCTestCase {
         
         sut.remove(TestKey.singleton1)
         sut.remove(TestKey.singleton2)
-                
+        
         XCTAssertNil(try? sut.resolveSingleton(.singleton1))
         XCTAssertNil(try? sut.resolveSingleton(.singleton2))
+    }
+    
+    func test_addSingletonForProtocol() throws {
+        let singleton: SingletonImpl1 = SingletonImpl1()
+        
+        try sut.add(for: Singleton1.self) { singleton }
+        
+        let resolvedByProtocol: Singleton1 = try sut.resolve()
+        let resolvedByClass: SingletonImpl1 = try sut.resolve()
+        
+        XCTAssertTrue(resolvedByProtocol === singleton)
+        XCTAssertTrue(resolvedByClass === singleton)
+    }
+    
+    func test_addSingletonForClass() throws {
+        let singleton: SingletonImpl1 = SingletonImpl1()
+        
+        try sut.add(for: BaseSigleton.self) { singleton }
+        
+        let resolvedByProvidedClass: BaseSigleton = try sut.resolve()
+        let resolvedByClass: SingletonImpl1 = try sut.resolve()
+        
+        XCTAssertTrue(resolvedByProvidedClass === singleton)
+        XCTAssertTrue(resolvedByClass === singleton)
+    }
+    
+    func test_addSingletonWithMultipleTypeInfo() throws {
+        let singleton: SingletonImpl1 = SingletonImpl1()
+
+        try sut.add(for: BaseSigleton.self, Singleton1.self) { singleton }
+        
+        let resolved1: BaseSigleton = try sut.resolve()
+        let resolved2: Singleton1 = try sut.resolve()
+        let resolved3: SingletonImpl1 = try sut.resolve()
+        
+        XCTAssertTrue(resolved1 === singleton)
+        XCTAssertTrue(resolved2 === singleton)
+        XCTAssertTrue(resolved3 === singleton)
     }
 }
 

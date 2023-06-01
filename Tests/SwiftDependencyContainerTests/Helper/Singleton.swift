@@ -6,7 +6,10 @@ protocol Singleton: AnyObject {
     var className: String { get }
 }
 
-class SingletonImpl1: BaseSigleton, Singleton {
+protocol Singleton1: Singleton {}
+protocol Singleton2: Singleton {}
+
+final class SingletonImpl1: BaseSigleton, Singleton1 {
     
     let created: Date = .init()
     let id: String
@@ -16,7 +19,7 @@ class SingletonImpl1: BaseSigleton, Singleton {
     }
 }
 
-class SingletonImpl2: BaseSigleton, Singleton {
+final class SingletonImpl2: BaseSigleton, Singleton2 {
     
     let created: Date = .init()
     let id = "2"
