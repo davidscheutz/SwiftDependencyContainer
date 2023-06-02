@@ -53,8 +53,13 @@ public final class DependencyContainer {
     }
     
     public func add<T>(for types: Any.Type..., isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try add(for: types, isEager: isEager) { _ in bootstrap() }
+    }
+    
+    // TODO: swift cannot pass array as variadic arguments
+    public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
         let keys = (types + [T.self]).map { keyValue(for: $0) }
-        try register(Set(keys), isEager: isEager) { _ in bootstrap() }
+        try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
     }
     
     public func add<T>(isEager: Bool = false, bootstrap: @escaping () -> T) throws {

@@ -78,6 +78,16 @@ class DependencyContainerTests: XCTestCase {
         XCTAssertNil(resolvedFailure)
     }
     
+    func test_registerSameObjectTwiceFails() throws {
+        try sut.add(isEager: true) { SingletonImpl1() }
+        
+        do {
+            try sut.add() { SingletonImpl1() }
+            
+            XCTFail("Shouldn't be possible, same object type is already bootstrapped.")
+        } catch {}
+    }
+    
     func test_constructorInjectOtherDepency() throws {
         try sut.registerSingletonImpl1WithKey()
         
@@ -124,9 +134,9 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonForClass() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
         
-        try sut.add(for: BaseSigleton.self) { singleton }
+        try sut.add(for: BaseSingleton.self) { singleton }
         
-        let resolvedByProvidedClass: BaseSigleton = try sut.resolve()
+        let resolvedByProvidedClass: BaseSingleton = try sut.resolve()
         let resolvedByClass: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolvedByProvidedClass === singleton)
@@ -136,15 +146,36 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonWithMultipleTypeInfo() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
 
-        try sut.add(for: BaseSigleton.self, Singleton1.self) { singleton }
+        try sut.add(for: BaseSingleton.self, Singleton1.self) { singleton }
         
-        let resolved1: BaseSigleton = try sut.resolve()
+        let resolved1: BaseSingleton = try sut.resolve()
         let resolved2: Singleton1 = try sut.resolve()
         let resolved3: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolved1 === singleton)
         XCTAssertTrue(resolved2 === singleton)
         XCTAssertTrue(resolved3 === singleton)
+    }
+    
+    func test_multipleTypeInfoWithResolverContext() throws {
+        try sut.add(for: Singleton.self) { SingletonImpl1() }
+        
+        try sut.add(for: [Singleton2.self]) {
+            SingletonImpl2(other: try $0.resolve())
+        }
+        
+        let resolved1_1: Singleton = try sut.resolve()
+        let resolved1_2: SingletonImpl1 = try sut.resolve()
+        let resolved2_1: Singleton2 = try sut.resolve()
+        let resolved2_2: SingletonImpl2 = try sut.resolve()
+        
+        XCTAssertTrue(resolved1_1 === resolved1_2)
+        XCTAssertTrue(resolved2_1 === resolved2_2)
+        
+        do {
+            let _: Singleton1 = try sut.resolve()
+            XCTFail("Dependency shouldn't be registered for that type information!")
+        } catch {}
     }
 }
 

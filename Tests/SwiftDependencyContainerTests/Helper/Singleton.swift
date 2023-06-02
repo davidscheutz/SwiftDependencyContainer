@@ -9,7 +9,7 @@ protocol Singleton: AnyObject {
 protocol Singleton1: Singleton {}
 protocol Singleton2: Singleton {}
 
-final class SingletonImpl1: BaseSigleton, Singleton1 {
+final class SingletonImpl1: BaseSingleton, Singleton1 {
     
     let created: Date = .init()
     let id: String
@@ -19,7 +19,7 @@ final class SingletonImpl1: BaseSigleton, Singleton1 {
     }
 }
 
-final class SingletonImpl2: BaseSigleton, Singleton2 {
+final class SingletonImpl2: BaseSingleton, Singleton2 {
     
     let created: Date = .init()
     let id = "2"
@@ -31,7 +31,7 @@ final class SingletonImpl2: BaseSigleton, Singleton2 {
     }
 }
 
-class BaseSigleton {
+class BaseSingleton {
     var className: String {
         String(describing: self)
     }
