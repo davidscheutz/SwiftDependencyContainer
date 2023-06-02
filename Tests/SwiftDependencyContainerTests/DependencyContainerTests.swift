@@ -146,7 +146,7 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonWithMultipleTypeInfo() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
 
-        try sut.add(for: BaseSingleton.self, Singleton1.self) { singleton }
+        try sut.add(for: [BaseSingleton.self, Singleton1.self]) { singleton }
         
         let resolved1: BaseSingleton = try sut.resolve()
         let resolved2: Singleton1 = try sut.resolve()
