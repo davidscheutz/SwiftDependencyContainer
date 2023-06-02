@@ -181,7 +181,7 @@ class DependencyContainerTests: XCTestCase {
 
 // MARK: - Helper
 
-enum TestKey: String, CaseIterable {
+enum TestKey: CaseIterable {
     case singleton1
     case singleton2
 }

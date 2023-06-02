@@ -8,8 +8,21 @@ public final class DependencyContainer {
     // https://developer.apple.com/documentation/swift/objectidentifier
     
     private typealias AnyResolver = Resolver<Any>
-    
-    private typealias Key = String
+        
+    private struct Key: Hashable {
+        let raw: String
+        let hashed: Int
+        
+        var hashValue: Int { hashed }
+        
+        var description: String {
+            "Raw: \(raw) - Hash: \(hashed)"
+        }
+        
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(hashed)
+        }
+    }
     
     private final class AnyContainer {
         private let resolver: AnyResolver
@@ -100,7 +113,7 @@ public final class DependencyContainer {
         let alreadyRegisteredKeys = keys.subtracting(newKeys).filter { dependencies[$0]?.isResolved == true }
         
         guard alreadyRegisteredKeys.isEmpty else {
-            throw RegisterError.alreadyBootstrapped(keys: alreadyRegisteredKeys.joined(separator: ","))
+            throw RegisterError.alreadyBootstrapped(keys: alreadyRegisteredKeys.map { $0.description }.joined(separator: ","))
         }
         
         let dependency = AnyContainer(resolver: bootstrap)
@@ -114,7 +127,7 @@ public final class DependencyContainer {
     
     private func resolve<T>(using key: Key) throws -> T {
         guard let dependency = try dependencies[key]?.resolve(self) as? T else {
-            throw ResolveError(key: key, classDescription: key)
+            throw ResolveError(key: key.description, classDescription: String(describing: T.self))
         }
         
         return dependency
@@ -127,6 +140,6 @@ public final class DependencyContainer {
     }
     
     private func keyValue<Key: Hashable>(from key: Key) -> DependencyContainer.Key {
-        .init(key.hashValue)
+        .init(raw: "\(key)", hashed: key.hashValue)
     }
 }
