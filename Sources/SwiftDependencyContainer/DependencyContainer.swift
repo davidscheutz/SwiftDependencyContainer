@@ -3,49 +3,7 @@ import Foundation
 public final class DependencyContainer {
 
     public typealias Resolver<T> = (DependencyContainer) throws -> T
-    
-    // TODO: evaluate ObjectIdentifier as an option, would that work with named keys as well?
-    // https://developer.apple.com/documentation/swift/objectidentifier
-    
-    private typealias AnyResolver = Resolver<Any>
         
-    private struct Key: Hashable {
-        let raw: String
-        let hashed: Int
-        
-        var hashValue: Int { hashed }
-        
-        var description: String {
-            "Raw: \(raw) - Hash: \(hashed)"
-        }
-        
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(hashed)
-        }
-    }
-    
-    private final class AnyContainer {
-        private let resolver: AnyResolver
-        // TODO: would be cool to use lazy with completion as constructor
-        // TODO: make Any sendable // https://developer.apple.com/documentation/swift/sendable
-        private var value: Any?
-        
-        init(resolver: @escaping AnyResolver) {
-            self.resolver = resolver
-        }
-        
-        var isResolved: Bool {
-            value != nil
-        }
-        
-        func resolve(_ container: DependencyContainer) throws -> Any {
-            if !isResolved {
-                value = try resolver(container)
-            }
-            return value! // safe to force unwrap here
-        }
-    }
-    
     public struct ResolveError: Error {
         public let key: String
         public let classDescription: String
