@@ -28,7 +28,7 @@ public final class DependencyContainer {
     }
     
     public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        try add(for: [T.self, U.self], isEager: isEager, bootstrap: bootstrap)
+        try add(for: [type], isEager: isEager, bootstrap: bootstrap)
     }
     
     public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
@@ -41,11 +41,11 @@ public final class DependencyContainer {
     }
     
     public func add<T>(isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        try register([keyValue(for: T.self)], isEager: isEager, bootstrap: bootstrap)
+        try add(for: T.self, isEager: isEager, bootstrap: bootstrap)
     }
     
     public func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(key, isEager: isEager, bootstrap: { _ in bootstrap() })
+        try add(key, isEager: isEager) { _ in bootstrap() }
     }
     
     public func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
