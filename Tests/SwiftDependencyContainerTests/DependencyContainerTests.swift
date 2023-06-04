@@ -113,11 +113,19 @@ class DependencyContainerTests: XCTestCase {
         
         try sut.add(for: Singleton1.self) { singleton }
         
+        try sut.add(for: Singleton2.self) {
+            let singleton1: Singleton1 = try $0.resolve()
+            return SingletonImpl2(other: singleton1)
+        }
+        
         let resolvedByProtocol: Singleton1 = try sut.resolve()
         let resolvedByClass: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolvedByProtocol === singleton)
         XCTAssertTrue(resolvedByClass === singleton)
+        
+        let _: Singleton2 = try sut.resolve()
+        let _: SingletonImpl2 = try sut.resolve()
     }
     
     func test_addSingletonForClass() throws {

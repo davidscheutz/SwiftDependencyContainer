@@ -20,11 +20,15 @@ public final class DependencyContainer {
     private var dependencies = [Key: AnyContainer]()
     
     public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(for: [T.self, U.self], isEager: isEager, bootstrap: bootstrap)
+        try add(for: type, isEager: isEager) { _ in bootstrap() }
     }
     
     public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try add(for: types, isEager: isEager) { _ in bootstrap() }
+    }
+    
+    public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+        try add(for: [T.self, U.self], isEager: isEager, bootstrap: bootstrap)
     }
     
     public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
