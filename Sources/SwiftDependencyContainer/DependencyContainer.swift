@@ -56,13 +56,6 @@ public final class DependencyContainer {
         try resolve(using: keyValue(from: key))
     }
 
-    @discardableResult
-    public func remove<Key: Hashable>(_ key: Key) -> Bool {
-        // TODO: remove dependency if it's registered for other keys as well?
-        // TODO: check if there is an active reference to that object
-        dependencies.removeValue(forKey: keyValue(from: key)) != nil
-    }
-    
     // MARK: - Private
     
     private func register<T>(_ keys: Set<Key>, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {

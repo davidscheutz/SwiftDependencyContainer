@@ -108,17 +108,6 @@ class DependencyContainerTests: XCTestCase {
         }
     }
     
-    func test_removeRegisteredDepency() throws {
-        try sut.registerSingletonImpl1WithKey(eager: true)
-        try sut.registerSingletonImpl2WithKey()
-        
-        sut.remove(TestKey.singleton1)
-        sut.remove(TestKey.singleton2)
-        
-        XCTAssertNil(try? sut.resolveSingleton(.singleton1))
-        XCTAssertNil(try? sut.resolveSingleton(.singleton2))
-    }
-    
     func test_addSingletonForProtocol() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
         
