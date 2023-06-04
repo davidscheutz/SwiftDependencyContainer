@@ -8,9 +8,7 @@ extension DependencyContainer {
     internal struct Key: Hashable {
         let raw: String
         let hashed: Int
-        
-        var hashValue: Int { hashed }
-        
+                
         var description: String {
             "Raw: \(raw) - Hash: \(hashed)"
         }
