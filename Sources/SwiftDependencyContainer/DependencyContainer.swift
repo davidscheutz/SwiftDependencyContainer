@@ -44,11 +44,11 @@ public final class DependencyContainer {
         try add(for: T.self, isEager: isEager, bootstrap: bootstrap)
     }
     
-    public func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+    public func add<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try add(key, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func add<Key: Hashable, T>(_ key: Key, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func add<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
         try register([keyValue(from: key)], isEager: isEager, bootstrap: bootstrap)
     }
     
@@ -56,7 +56,7 @@ public final class DependencyContainer {
         try resolve(using: keyValue(for: T.self))
     }
     
-    public func resolve<Key: Hashable, T>(_ key: Key) throws -> T {
+    public func resolve<T>(_ key: AnyHashable) throws -> T {
         try resolve(using: keyValue(from: key))
     }
 
@@ -93,7 +93,7 @@ public final class DependencyContainer {
         keyValue(from: String(describing: objectType))
     }
     
-    private func keyValue<Key: Hashable>(from key: Key) -> DependencyContainer.Key {
-        .init(raw: "\(key)", hashed: key.hashValue)
+    private func keyValue(from key: AnyHashable) -> Key {
+        .init(key: key)
     }
 }

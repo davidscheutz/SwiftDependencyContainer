@@ -9,6 +9,11 @@ extension DependencyContainer {
         let raw: String
         let hashed: Int
                 
+        init(key: AnyHashable) {
+            raw = "\(key)"
+            hashed = key.hashValue
+        }
+        
         var description: String {
             "Raw: \(raw) - Hash: \(hashed)"
         }
