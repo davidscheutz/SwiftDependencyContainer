@@ -7,6 +7,15 @@ public final class DependencyContainer {
     public struct ResolveError: Error {
         public let key: String
         public let classDescription: String
+        public let reason: String
+        
+        static func create<T>(key: Key, type: T.Type, reason: String) -> Self {
+            ResolveError(
+                key: key.description,
+                classDescription: String(describing: T.self),
+                reason: reason
+            )
+        }
     }
     
     enum RegisterError: Error {
@@ -67,11 +76,13 @@ public final class DependencyContainer {
         let alreadyRegisteredKeys = keys.subtracting(newKeys).filter { dependencies[$0]?.isResolved == true }
         
         guard alreadyRegisteredKeys.isEmpty else {
-            throw RegisterError.alreadyBootstrapped(keys: alreadyRegisteredKeys.map { $0.description }.joined(separator: ","))
+            let description = alreadyRegisteredKeys.map { $0.description }.joined(separator: ",")
+            throw RegisterError.alreadyBootstrapped(keys: description)
         }
         
         let dependency = AnyContainer(resolver: bootstrap)
         
+        // multiple keys can reference the same dependency
         keys.forEach { dependencies[$0] = dependency }
         
         if isEager {
@@ -80,11 +91,21 @@ public final class DependencyContainer {
     }
     
     private func resolve<T>(using key: Key) throws -> T {
-        guard let dependency = try dependencies[key]?.resolve(self) as? T else {
-            throw ResolveError(key: key.description, classDescription: String(describing: T.self))
+        guard let container = dependencies[key] else {
+            throw ResolveError.create(key: key, type: T.self, reason: "Dependency not registered!")
         }
         
-        return dependency
+        do {
+            let resolved = try container.resolve(self)
+            
+            guard let dependency = resolved as? T else {
+                throw ResolveError.create(key: key, type: T.self, reason: "Mismatching type!")
+            }
+            
+            return dependency
+        } catch let error {
+            throw ResolveError.create(key: key, type: T.self, reason: "Couldn't be resolved: \(error)!")
+        }
     }
     
     // MARK: - Helper
