@@ -4,21 +4,14 @@ public final class DependencyContainer {
 
     public typealias Resolver<T> = (DependencyContainer) throws -> T
         
-    public struct ResolveError: Error {
-        public let key: String
-        public let classDescription: String
-        public let reason: String
-        
-        static func create<T>(key: Key, type: T.Type, reason: String) -> Self {
-            ResolveError(
-                key: key.description,
-                classDescription: String(describing: T.self),
-                reason: reason
-            )
-        }
+    public enum ResolveError<T>: Error {
+        case notBootstrapped
+        case typeMismatch(actual: String)
+        case notRegistered
+        case unknown(key: String, error: Error)
     }
     
-    enum RegisterError: Error {
+    public enum RegisterError: Error {
         case alreadyBootstrapped(keys: String)
     }
     
@@ -27,6 +20,8 @@ public final class DependencyContainer {
     public init() {}
 
     private var dependencies = [Key: AnyContainer]()
+    private var eagerKeys = Set<Key>()
+    private var bootstrapped = false
     
     public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try add(for: type, isEager: isEager) { _ in bootstrap() }
@@ -69,15 +64,25 @@ public final class DependencyContainer {
         try resolve(using: keyValue(from: key))
     }
 
+    public func bootstrap() throws {
+        try dependencies.forEach {
+            if eagerKeys.contains($0.key) {
+                _ = try $0.value.resolve(self)
+            }
+        }
+        
+        bootstrapped = true
+    }
+    
     // MARK: - Private
     
     private func register<T>(_ keys: Set<Key>, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        let newKeys = Set(keys).subtracting(dependencies.keys)
-        let alreadyRegisteredKeys = keys.subtracting(newKeys).filter { dependencies[$0]?.isResolved == true }
+        guard !bootstrapped else {
+            throw RegisterError.alreadyBootstrapped(keys: keys.map { $0.description }.joined(separator: ","))
+        }
         
-        guard alreadyRegisteredKeys.isEmpty else {
-            let description = alreadyRegisteredKeys.map { $0.description }.joined(separator: ",")
-            throw RegisterError.alreadyBootstrapped(keys: description)
+        guard !keys.isEmpty else {
+            return
         }
         
         let dependency = AnyContainer(resolver: bootstrap)
@@ -85,26 +90,39 @@ public final class DependencyContainer {
         // multiple keys can reference the same dependency
         keys.forEach { dependencies[$0] = dependency }
         
+        let eagerKey = keys.first!
         if isEager {
-            _ = try dependency.resolve(self)
+            eagerKeys.insert(eagerKey)
+        } else {
+            eagerKeys.remove(eagerKey)
         }
     }
     
     private func resolve<T>(using key: Key) throws -> T {
+        if !bootstrapped && eagerKeys.isEmpty {
+            // automatically bootsrap if there are no eager dependencies
+            bootstrapped = true
+        }
+        
+        guard bootstrapped else {
+            throw ResolveError<T>.notBootstrapped
+        }
+        
         guard let container = dependencies[key] else {
-            throw ResolveError.create(key: key, type: T.self, reason: "Dependency not registered!")
+            throw ResolveError<T>.notRegistered
+            //.create(key: key, type: T.self, reason: "Dependency not registered!")
         }
         
         do {
             let resolved = try container.resolve(self)
             
             guard let dependency = resolved as? T else {
-                throw ResolveError.create(key: key, type: T.self, reason: "Mismatching type!")
+                throw ResolveError<T>.typeMismatch(actual: "\(type(of: resolved))")
             }
             
             return dependency
         } catch let error {
-            throw ResolveError.create(key: key, type: T.self, reason: "Couldn't be resolved: \(error)!")
+            throw ResolveError<T>.unknown(key: key.raw, error: error)
         }
     }
     

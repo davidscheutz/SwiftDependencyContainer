@@ -22,11 +22,28 @@ class DependencyContainerTests: XCTestCase {
     func test_eagerBootstrap() throws {
         try sut.registerSingletonImpl1WithKey(eager: true)
         
+        try sut.bootstrap()
+        
         let start = Date()
         
         let singleton = try sut.resolveSingleton(.singleton1)
         
         XCTAssertTrue(start > singleton.created)
+    }
+    
+    func test_eagerWithoutBootstrap() throws {
+        try sut.registerSingletonImpl1WithKey(eager: true)
+                
+        do {
+            _ = try sut.resolveSingleton(.singleton1)
+            XCTFail("Shouldn't be able to resolve a dependency before the container is bootstrapped")
+        } catch let error {
+            if case .notBootstrapped = error as? DependencyContainer.ResolveError<Singleton> {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
     }
     
     func test_singleInstance() throws {
@@ -35,7 +52,7 @@ class DependencyContainerTests: XCTestCase {
         XCTAssertTrue(try sut.resolveSingleton(.singleton1) === sut.resolveSingleton(.singleton1))
     }
     
-    func test_replaceRegisteredInstanceBeforeBootsrap() throws {
+    func test_replaceRegisteredInstanceBeforeBootstrap() throws {
         try sut.registerSingletonImpl1WithKey(id: "1")
         try sut.registerSingletonImpl1WithKey(id: "2")
         
@@ -45,7 +62,7 @@ class DependencyContainerTests: XCTestCase {
     
     func test_registerAfterEagerRegisterFails() throws {
         try sut.registerSingletonImpl1WithKey(eager: true)
-        
+        try sut.bootstrap()
         do {
             try sut.registerSingletonImpl1WithKey()
             XCTFail("Should fail, dependency for key is already bootstrapped.")
@@ -71,6 +88,8 @@ class DependencyContainerTests: XCTestCase {
             return SingletonImpl2(other: s1)
         }
         
+        try sut.bootstrap()
+        
         let _: SingletonImpl1 = try sut.resolve()
         let _: SingletonImpl2 = try sut.resolve()
         
@@ -80,12 +99,31 @@ class DependencyContainerTests: XCTestCase {
     
     func test_registerSameObjectTwiceFails() throws {
         try sut.add(isEager: true) { SingletonImpl1() }
+        try sut.bootstrap()
         
         do {
             try sut.add() { SingletonImpl1() }
             
             XCTFail("Shouldn't be possible, same object type is already bootstrapped.")
-        } catch {}
+        } catch is DependencyContainer.RegisterError {
+            // expected
+        } catch let error {
+            XCTFail("Unknown error: \(error)")
+        }
+    }
+    
+    func test_registerObjectAfterBootstrappedFails() throws {
+        try sut.bootstrap()
+        
+        do {
+            try sut.add() { SingletonImpl1() }
+            
+            XCTFail("Shouldn't be possible, container is already bootstrapped.")
+        } catch is DependencyContainer.RegisterError {
+            // expected
+        } catch let error {
+            XCTFail("Unknown error: \(error)")
+        }
     }
     
     func test_constructorInjectOtherDepency() throws {
@@ -101,7 +139,7 @@ class DependencyContainerTests: XCTestCase {
             let _: Singleton = try sut.resolve(using: .singleton1)
             
             XCTFail("Dependency shouldn't be registered!")
-        } catch is DependencyContainer.ResolveError {
+        } catch is DependencyContainer.ResolveError<Singleton> {
             // expected
         } catch let error {
             XCTFail("Unknown error: \(error)")
@@ -172,7 +210,13 @@ class DependencyContainerTests: XCTestCase {
         do {
             let _: Singleton1 = try sut.resolve()
             XCTFail("Dependency shouldn't be registered for that type information!")
-        } catch {}
+        } catch let error {
+            if case .notRegistered = error as? DependencyContainer.ResolveError<Singleton1> {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
     }
 }
 
