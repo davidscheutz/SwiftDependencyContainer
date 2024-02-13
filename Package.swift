@@ -7,9 +7,8 @@ let package = Package(
     name: "SwiftDependencyContainer",
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
-        .library(
-            name: "SwiftDependencyContainer",
-            targets: ["SwiftDependencyContainer"]),
+        .library(name: "SwiftDependencyContainer", targets: ["SwiftDependencyContainer"]),
+        .plugin(name: "SwiftDependencyContainerPlugin", targets: ["SwiftDependencyContainerPlugin"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -24,5 +23,16 @@ let package = Package(
         .testTarget(
             name: "SwiftDependencyContainerTests",
             dependencies: ["SwiftDependencyContainer"]),
+        .plugin(
+            name: "SwiftDependencyContainerPlugin",
+            capability: .buildTool(),
+            dependencies: [
+                .target(name: "SwiftDependencyContainerSourcery")
+            ]
+        ),
+        .binaryTarget(
+            name: "SwiftDependencyContainerSourcery",
+            path: "Binaries/sourcery.artifactbundle"
+        )
     ]
 )

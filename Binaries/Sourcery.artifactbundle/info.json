@@ -1,0 +1,15 @@
+{
+    "schemaVersion": "1.0",
+    "artifacts": {
+        "sourcery": {
+            "type": "executable",
+            "version": "2.1.7",
+            "variants": [
+                {
+                    "path": "sourcery-2.1.7/bin/sourcery",
+                    "supportedTriples": ["x86_64-apple-macosx", "arm64-apple-macosx"]
+                },
+            ]
+        }
+    }
+}
