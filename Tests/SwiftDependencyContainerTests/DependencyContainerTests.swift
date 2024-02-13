@@ -157,13 +157,17 @@ class DependencyContainerTests: XCTestCase {
         }
         
         let resolvedByProtocol: Singleton1 = try sut.resolve()
-        let resolvedByClass: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolvedByProtocol === singleton)
-        XCTAssertTrue(resolvedByClass === singleton)
         
         let _: Singleton2 = try sut.resolve()
-        let _: SingletonImpl2 = try sut.resolve()
+        
+        do {
+            let _: SingletonImpl2 = try sut.resolve()
+            XCTFail("Dependency shouldn't be registered for it's class type!")
+        } catch {
+            // expected
+        }
     }
     
     func test_addSingletonForClass() throws {
@@ -172,10 +176,15 @@ class DependencyContainerTests: XCTestCase {
         try sut.add(for: BaseSingleton.self) { singleton }
         
         let resolvedByProvidedClass: BaseSingleton = try sut.resolve()
-        let resolvedByClass: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolvedByProvidedClass === singleton)
-        XCTAssertTrue(resolvedByClass === singleton)
+        
+        do {
+            let _: SingletonImpl1 = try sut.resolve()
+            XCTFail("Dependency shouldn't be registered for it's class type!")
+        } catch {
+            // expected
+        }
     }
     
     func test_addSingletonWithMultipleTypeInfo() throws {
@@ -185,26 +194,29 @@ class DependencyContainerTests: XCTestCase {
         
         let resolved1: BaseSingleton = try sut.resolve()
         let resolved2: Singleton1 = try sut.resolve()
-        let resolved3: SingletonImpl1 = try sut.resolve()
         
         XCTAssertTrue(resolved1 === singleton)
         XCTAssertTrue(resolved2 === singleton)
-        XCTAssertTrue(resolved3 === singleton)
+        
+        do {
+            let _: SingletonImpl1 = try sut.resolve()
+            XCTFail("Dependency shouldn't be registered for it's class type!")
+        } catch {
+            // expected
+        }
     }
     
     func test_multipleTypeInfoWithResolverContext() throws {
         try sut.add(for: Singleton.self) { SingletonImpl1() }
         
-        try sut.add(for: [Singleton2.self]) {
+        try sut.add(for: [Singleton2.self, SingletonImpl2.self]) {
             SingletonImpl2(other: try $0.resolve())
         }
         
-        let resolved1_1: Singleton = try sut.resolve()
-        let resolved1_2: SingletonImpl1 = try sut.resolve()
+        let _: Singleton = try sut.resolve()
         let resolved2_1: Singleton2 = try sut.resolve()
         let resolved2_2: SingletonImpl2 = try sut.resolve()
         
-        XCTAssertTrue(resolved1_1 === resolved1_2)
         XCTAssertTrue(resolved2_1 === resolved2_2)
         
         do {

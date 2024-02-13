@@ -36,7 +36,7 @@ public final class DependencyContainer {
     }
     
     public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        let keys = (types + [T.self]).map { keyValue(for: $0) }
+        let keys = types.map { keyValue(for: $0) }
         try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
     }
     
