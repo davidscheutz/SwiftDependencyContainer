@@ -23,36 +23,36 @@ public final class DependencyContainer {
     private var eagerKeys = Set<Key>()
     private var bootstrapped = false
     
-    public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(for: type, isEager: isEager) { _ in bootstrap() }
+    public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try register(type, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(for: types, isEager: isEager) { _ in bootstrap() }
+    public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try register(types, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func add<T, U>(for type: U.Type, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        try add(for: [type], isEager: isEager, bootstrap: bootstrap)
+    public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+        try register([type], isEager: isEager, bootstrap: bootstrap)
     }
     
-    public func add<T>(for types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
         let keys = types.map { keyValue(for: $0) }
         try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
     }
     
-    public func add<T>(isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(isEager: isEager) { _ in bootstrap() }
+    public func register<T>(isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try register(isEager: isEager) { _ in bootstrap() }
     }
     
-    public func add<T>(isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
-        try add(for: T.self, isEager: isEager, bootstrap: bootstrap)
+    public func register<T>(isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+        try register(T.self, isEager: isEager, bootstrap: bootstrap)
     }
     
-    public func add<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
-        try add(key, isEager: isEager) { _ in bootstrap() }
+    public func register<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
+        try register(key, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func add<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
         try register([keyValue(from: key)], isEager: isEager, bootstrap: bootstrap)
     }
     

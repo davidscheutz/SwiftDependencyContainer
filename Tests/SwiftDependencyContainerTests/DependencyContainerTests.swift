@@ -81,9 +81,9 @@ class DependencyContainerTests: XCTestCase {
     }
     
     func test_registerUsingTypeinformation() throws {
-        try sut.add(isEager: true) { SingletonImpl1() }
+        try sut.register(isEager: true) { SingletonImpl1() }
         
-        try sut.add {
+        try sut.register {
             let s1: SingletonImpl1 = try $0.resolve()
             return SingletonImpl2(other: s1)
         }
@@ -98,11 +98,11 @@ class DependencyContainerTests: XCTestCase {
     }
     
     func test_registerSameObjectTwiceFails() throws {
-        try sut.add(isEager: true) { SingletonImpl1() }
+        try sut.register(isEager: true) { SingletonImpl1() }
         try sut.bootstrap()
         
         do {
-            try sut.add() { SingletonImpl1() }
+            try sut.register { SingletonImpl1() }
             
             XCTFail("Shouldn't be possible, same object type is already bootstrapped.")
         } catch is DependencyContainer.RegisterError {
@@ -116,7 +116,7 @@ class DependencyContainerTests: XCTestCase {
         try sut.bootstrap()
         
         do {
-            try sut.add() { SingletonImpl1() }
+            try sut.register { SingletonImpl1() }
             
             XCTFail("Shouldn't be possible, container is already bootstrapped.")
         } catch is DependencyContainer.RegisterError {
@@ -129,7 +129,7 @@ class DependencyContainerTests: XCTestCase {
     func test_constructorInjectOtherDepency() throws {
         try sut.registerSingletonImpl1WithKey()
         
-        try sut.add(TestKey.singleton2) {
+        try sut.register(TestKey.singleton2) {
             SingletonImpl2(other: try $0.resolveSingleton(.singleton1))
         }
     }
@@ -149,9 +149,9 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonForProtocol() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
         
-        try sut.add(for: Singleton1.self) { singleton }
+        try sut.register(Singleton1.self) { singleton }
         
-        try sut.add(for: Singleton2.self) {
+        try sut.register(Singleton2.self) {
             let singleton1: Singleton1 = try $0.resolve()
             return SingletonImpl2(other: singleton1)
         }
@@ -173,7 +173,7 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonForClass() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
         
-        try sut.add(for: BaseSingleton.self) { singleton }
+        try sut.register(BaseSingleton.self) { singleton }
         
         let resolvedByProvidedClass: BaseSingleton = try sut.resolve()
         
@@ -190,7 +190,7 @@ class DependencyContainerTests: XCTestCase {
     func test_addSingletonWithMultipleTypeInfo() throws {
         let singleton: SingletonImpl1 = SingletonImpl1()
 
-        try sut.add(for: [BaseSingleton.self, Singleton1.self]) { singleton }
+        try sut.register([BaseSingleton.self, Singleton1.self]) { singleton }
         
         let resolved1: BaseSingleton = try sut.resolve()
         let resolved2: Singleton1 = try sut.resolve()
@@ -207,9 +207,9 @@ class DependencyContainerTests: XCTestCase {
     }
     
     func test_multipleTypeInfoWithResolverContext() throws {
-        try sut.add(for: Singleton.self) { SingletonImpl1() }
+        try sut.register(Singleton.self) { SingletonImpl1() }
         
-        try sut.add(for: [Singleton2.self, SingletonImpl2.self]) {
+        try sut.register([Singleton2.self, SingletonImpl2.self]) {
             SingletonImpl2(other: try $0.resolve())
         }
         
@@ -242,19 +242,19 @@ enum TestKey: CaseIterable {
 extension DependencyContainer {
     
     func registerSingletonImpl1WithKey(id: String = "1", eager: Bool = false) throws {
-        try add(TestKey.singleton1, isEager: eager) { SingletonImpl1(id: id) }
+        try register(TestKey.singleton1, isEager: eager) { SingletonImpl1(id: id) }
     }
     
     func registerSingletonImpl2WithKey(eager: Bool = false) throws {
-        try add(TestKey.singleton2, isEager: eager) { SingletonImpl2(other: try $0.resolve(using: .singleton1)) }
+        try register(TestKey.singleton2, isEager: eager) { SingletonImpl2(other: try $0.resolve(using: .singleton1)) }
     }
     
     func resolveSingleton(_ key: TestKey) throws -> Singleton {
         try resolve(using: key)
     }
     
-    fileprivate func add<T>(for key: TestKey, element: @escaping () -> T) throws {
-        try add(key, bootstrap: element)
+    fileprivate func register<T>(for key: TestKey, element: @escaping () -> T) throws {
+        try register(key, bootstrap: element)
     }
     
     fileprivate func resolve<T>(using key: TestKey) throws -> T {
