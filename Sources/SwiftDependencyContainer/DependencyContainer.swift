@@ -12,6 +12,7 @@ public final class DependencyContainer {
     }
     
     public enum RegisterError: Error {
+        case missingKey
         case alreadyBootstrapped(keys: String)
     }
     
@@ -82,7 +83,7 @@ public final class DependencyContainer {
         }
         
         guard !keys.isEmpty else {
-            return
+            throw RegisterError.missingKey
         }
         
         let dependency = AnyContainer(resolver: bootstrap)
@@ -113,17 +114,19 @@ public final class DependencyContainer {
             //.create(key: key, type: T.self, reason: "Dependency not registered!")
         }
         
+        let resolved: Any
+        
         do {
-            let resolved = try container.resolve(self)
-            
-            guard let dependency = resolved as? T else {
-                throw ResolveError<T>.typeMismatch(actual: "\(type(of: resolved))")
-            }
-            
-            return dependency
+            resolved = try container.resolve(self)
         } catch let error {
             throw ResolveError<T>.unknown(key: key.raw, error: error)
         }
+        
+        guard let dependency = resolved as? T else {
+            throw ResolveError<T>.typeMismatch(actual: "\(type(of: resolved))")
+        }
+        
+        return dependency
     }
     
     // MARK: - Helper

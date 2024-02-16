@@ -69,6 +69,51 @@ class DependencyContainerTests: XCTestCase {
         } catch {}
     }
     
+    func test_resolveWrongTypeFails() throws {
+        try sut.register(for: .singleton1) { SingletonImpl1() }
+        try sut.bootstrap()
+        
+        do {
+            let _: SingletonImpl2 = try sut.resolve(using: .singleton1)
+            XCTFail("Should fail, dependency type isn't matching.")
+        } catch let error {
+            if case .typeMismatch(actual: "SingletonImpl1") = error as? DependencyContainer.ResolveError<SingletonImpl2> {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
+    }
+    
+    func test_resolveInnerDependencyFails() throws {
+        try sut.register { SingletonImpl2(other: try $0.resolve()) }
+        try sut.bootstrap()
+        
+        do {
+            let _: SingletonImpl2 = try sut.resolve()
+            XCTFail("Should fail, dependency instantiation failed.")
+        } catch let error {
+            if case .unknown = error as? DependencyContainer.ResolveError<SingletonImpl2> {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
+    }
+    
+    func test_registerForEmptyTypesFails() throws {
+        do {
+            try sut.register([]) { SingletonImpl1() }
+            XCTFail("Should fail, no type information provided.")
+        } catch let error {
+            if case .missingKey = error as? DependencyContainer.RegisterError {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
+    }
+    
     func test_registerAfterBootstrappedFails() throws {
         try sut.registerSingletonImpl1WithKey()
         
