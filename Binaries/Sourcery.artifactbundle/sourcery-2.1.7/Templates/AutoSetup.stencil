@@ -21,22 +21,21 @@ import SwiftDependencyContainer
 
 /*
     Examples:
-    /// @Factory(resolver: MyDependencies.resolve)
     /// @Factory
 */
 {% for type in types.classes %}
   {% for comment in type.documentation %}
     {% if comment|contains:"@Factory" %}
 extension {{ type.name }} {
-    // TODO: leverage 'AutoSetup' instead of 'resolver' parameter
     {% for initializer in type.allMethods|initializer %}
     static func create{% call numberPrefix forloop.length forloop.counter %}(_ container: DependencyContainer) -> {{ type.name }} {
         {% call generateInitializer initializer "try! container.resolve()" %}
     }
     
-        {% if comment|contains:"(resolver:" %}
+        {% if types.based.AutoSetup|count == 1 %}
     static func create{% call numberPrefix forloop.length forloop.counter %}() -> {{ type.name }} {
-        {% call generateInitializer initializer comment|replace:"@Factory(resolver: ",""|replace:")","()" %}
+        {% set resolver %}{{ types.based.AutoSetup.first.name }}.resolve(){% endset %}
+        {% call generateInitializer initializer resolver %}
     }
         {% endif %}
     {% endfor %}
@@ -53,6 +52,12 @@ extension {{ type.name }} {
     {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])","" }}
 {%- endmacro %}
 
+{% macro generateDependecyResolver type needsPrefix parent %}
+    static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
+        {{ parent }}.resolve()
+    }
+{% endmacro %}
+
 /*
     Examples:
     /// @EagerSingleton(types: [MyAbstraction.self])
@@ -67,11 +72,11 @@ extension {{ type.name }} {
     {% for initializer in type.allMethods|initializer %}
     static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
         {% if comment|contains:"(types:" %}
-        try container.add(for: [{% call parseTypes comment %}], isEager: isEager) {
+        try container.register([{% call parseTypes comment %}], isEager: isEager) {
         {% call generateInitializer initializer "try $0.resolve()" %}
         }
         {% else %}
-        try container.add(isEager: isEager) {
+        try container.register(isEager: isEager) {
         {% call generateInitializer initializer "try $0.resolve()" %}
         }
         {% endif %}
@@ -82,18 +87,24 @@ extension {{ type.name }} {
     {% if type.allMethods|initializer|count == 0 %}
     static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
         {% if comment|contains:"(types:" %}
-        try container.add(for: [{% call parseTypes comment %}], isEager: isEager) {
+        try container.register([{% call parseTypes comment %}], isEager: isEager) {
     {% call generateInitializer initializer "try $0.resolve()" %}
         }
         {% else %}
-        try container.add(isEager: isEager) { {{ type.name }}() }
+        try container.register(isEager: isEager) { {{ type.name }}() }
         {% endif %}
     }
     {% endif %}
     
-    //static func resolve(_ container: DependencyContainer) -> {{ type.name }} {
-    //    try! container.resolve()
-    //}
+    {% if types.based.AutoSetup|count == 1 %}
+        {% if comment|contains:"(types:" %}
+            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+                {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name %}
+            {% endfor %}
+        {% else %}
+            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name %}
+        {% endif %}
+    {% endif %}
 }
 
     {% endif %}
@@ -103,14 +114,19 @@ extension {{ type.name }} {
 /*
     AutoSetup
 */
-{% macro generateDependecyPair type parent %}
-    var {{ type|lowerFirstLetter }}: {{ type }} { {{ parent }}.{{ type|lowerFirstLetter }} }
+{% macro generateDependecyVariable type parent %}
     static var {{ type|lowerFirstLetter }}: {{ type }} { resolve() }
+{%- endmacro %}
+
+{% macro generateDependecyVariableFromTypes annotation parent %}
+    {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+        {% call generateDependecyVariable type root.name %}
+    {% endfor %}
 {%- endmacro %}
 
 {% for root in types.based.AutoSetup %}
 extension {{ root.name}} {
-    static let shared = {{ root.name }}() // TODO: check for empty constructor
+    private static let shared = {{ root.name }}() // TODO: check for empty constructor
     
     static func setup() {
     {% if types.based.AutoSetup|count > 1 %}
@@ -132,26 +148,21 @@ extension {{ root.name}} {
     
     {% for type in types.all %}
         {% for comment in type.documentation %}
-            {% if comment|contains:"@Singleton(types:" %} // TODO: Handle @EagerSingleton
-                {% for additionalType in comment|replace:"@Singleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
-                    {% call generateDependecyPair additionalType root.name %}
-                {% endfor %}
+            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
+                {% call generateDependecyVariableFromTypes comment root.name %}
             {% else %}
                 {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-                    {% call generateDependecyPair type.name root.name %}
+                    {% call generateDependecyVariable type.name root.name %}
                 {% endif %}
+            {% endif %}
+            
+            {% if comment|contains:"@Factory" %}
+    static func create{{ type.name }}() -> {{ type.name }} { {{ type.name }}.create() }
             {% endif %}
         {% endfor %}
     {% endfor %}
-
-    // TODO: go over the dependencies registered using the override function
-    {% for method in root.methods %}
-        {% if method.name|contains:"override(_ container:" %}
-        // {{ method.name }}
-        {% endif %}
-    {% endfor %}
     
-    fileprivate static func resolve<T>() -> T {
+    static func resolve<T>() -> T {
         try! shared.container.resolve()
     }
 }
