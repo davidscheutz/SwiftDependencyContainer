@@ -55,7 +55,7 @@ extension {{ type.name }} {
 {%- endmacro %}
 
 {% macro parseTypes annotation -%}
-    {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])","" }}
+    {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:",",".self,"|replace:"])",".self" }}
 {%- endmacro %}
 
 {% macro generateDependecyResolver type needsPrefix parent %}
@@ -66,8 +66,8 @@ extension {{ type.name }} {
 
 /*
     Examples:
-    /// @EagerSingleton(types: [MyAbstraction.self])
-    /// @Singleton(types: [MyAbstraction.self])
+    /// @EagerSingleton(types: [MyAbstraction])
+    /// @Singleton(types: [MyAbstraction])
     /// @EagerSingleton
     /// @Singleton
 */
@@ -104,7 +104,7 @@ extension {{ type.name }} {
     
     {% if types.based.AutoSetup|count == 1 %}
         {% if comment|contains:"(types:" %}
-            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|split: ", " %}
                 {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name %}
             {% endfor %}
         {% else %}
