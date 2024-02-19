@@ -13,6 +13,12 @@
     {% endif %}
 {% endmacro %}
 
+{% macro emptyFactory type %}
+    static func create() -> {{ type.name }} {
+        {{ type.name }}()
+    }
+{% endmacro %}
+
 {% macro numberPrefix count index -%}
     {%- if count > 1 -%}{{ index }}{%- endif -%}
 {%- endmacro %}
@@ -27,24 +33,40 @@ import SwiftDependencyContainer
   {% for comment in type.documentation %}
     {% if comment|contains:"@Factory" %}
 extension {{ type.name }} {
-    {% for initializer in type.allMethods|initializer %}
-    static func create{% call numberPrefix forloop.length forloop.counter %}(_ container: DependencyContainer) -> {{ type.name }} {
-        {% call generateInitializer initializer "try! container.resolve()" %}
-    }
-    
-        {% if types.based.AutoSetup|count == 1 %}
-    static func create{% call numberPrefix forloop.length forloop.counter %}() -> {{ type.name }} {
-        {% set resolver %}{{ types.based.AutoSetup.first.name }}.resolve(){% endset %}
-        {% call generateInitializer initializer resolver %}
-    }
-        {% endif %}
-    {% endfor %}
+    {% if type.allMethods|initializer|count > 1 %}
+    // ⚠️ Warning: Generating factory methods for more than one constructor isn't supported at the moment
+        {% break %}
+    {% endif %}
     
     {% if type.allMethods|initializer|count == 0 %}
-    static func create() -> {{ type.name }} {
-        {{ type.name }}()
-    }
+        {% call emptyFactory type %}
+}
+        {% break %}
     {% endif %}
+    
+    {% for initializer in type.allMethods|initializer %}
+        {% if initializer.parameters.count == 0 %}
+            {% call emptyFactory type %}
+            {% break %}
+        {% endif %}
+    
+    // TODO: find a more effetive solution
+    static func create(
+        {% if not types.based.AutoSetup|count == 1 %}_ container: DependencyContainer,{% endif%}
+        {% for parameter in initializer.parameters %}
+            {{ parameter.name }}: {{ parameter.typeName }} 
+            {%- for resolvableType in types.all %}
+                {%- for resolvableAnnotation in resolvableType.documentation where resolvableAnnotation|contains:"Singleton" %}
+                    {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
+                {% endfor -%}
+            {% endfor -%}
+            {{ ", " if not forloop.last }}
+        {% endfor %}
+        ) -> {{ type.name }} {
+        {{ type.name }}({%- for parameter in initializer.parameters %}{{ parameter.name}}: {{ parameter.name}}{{ ", " if not forloop.last }}{% endfor -%})
+    }
+        {% break %}
+    {% endfor %}
 }
     {% endif %}
   {% endfor %}
@@ -160,10 +182,6 @@ extension {{ root.name}} {
                 {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
                     {% call generateDependecyVariable type.name root.name %}
                 {% endif %}
-            {% endif %}
-            
-            {% if comment|contains:"@Factory" %}
-    static func create{{ type.name }}() -> {{ type.name }} { {{ type.name }}.create() }
             {% endif %}
         {% endfor %}
     {% endfor %}
