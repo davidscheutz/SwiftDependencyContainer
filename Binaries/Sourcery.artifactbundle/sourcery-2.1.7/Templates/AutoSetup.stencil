@@ -23,6 +23,7 @@
     {%- if count > 1 -%}{{ index }}{%- endif -%}
 {%- endmacro %}
 
+import Foundation
 import SwiftDependencyContainer
 
 /*
@@ -35,6 +36,7 @@ import SwiftDependencyContainer
 extension {{ type.name }} {
     {% if type.allMethods|initializer|count > 1 %}
     // ⚠️ Warning: Generating factory methods for more than one constructor isn't supported at the moment
+}
         {% break %}
     {% endif %}
     
