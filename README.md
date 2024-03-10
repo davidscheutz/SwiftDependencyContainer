@@ -3,21 +3,19 @@
 ![SwiftPM Compatible](https://img.shields.io/badge/SwiftPM-Compatible-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-# Introduction
+# Code Generation powered Dependency Container
 
-`SwiftDependencyContainer` is a lightweight **Code Generation powered Dependency Container**.
-
-Instead of reinventing the wheel it uses latest technologies and tools to simplify the use of well established best practices to manage dependencies. 
+`SwiftDependencyContainer` is a lightweight Dependency Container leveraging code generation to make setting up and managing dependencies easier than ever.
 
 ## Features
 
-#### - Life Cycle
+#### - Life Cycles
 
-The `DependencyContainer` retains every registered instance after it's resolved for the first time, and is being reuse throughout the container's' lifetime. Singletons can be registered as eager, which means they will be immediately resolved when you call the `bootstrap` method. 
+Objects registered as `Singleton` are retained throughout the container's' lifetime, once resolved. Marked as eager will create the instance immediately, when the `bootstrap` method is called. Objects registered as `Factory` will return a new instance every time it's being resolved.
 
 #### - Auto-wiring
 
-Required dependencies to instantiate an object using constructor injection can be auto-wired, assuming they are also registered in the container.
+Required dependencies to instantiate an object using constructor injection can be auto-wired, assuming they are registered in the container.
 
 #### - Type forwarding
 
@@ -27,12 +25,11 @@ Register one instance for multiple types, allowing for more flexible and maintai
 
 Manage dependencies using hashable keys, enabling registering different implementations for the same protocol or tpye.
 
-#### - Factory
-The `DependencyContainer` resolves a new instance for your type each time you call `resolve` method.
-
 ## Auto-Setup
  
-For a magical setup experience through code generation.
+For a magical setup experience thanks to code generation.
+
+[Examples](Examples.swift) contains a demonstration for each use case. 
 
 ### Step 1: Annotate your Dependencies
 
@@ -43,18 +40,14 @@ You can use the following annotiations for automatic dependency resolution:
 /// @EagerSingleton
 /// @Singleton(types: [])
 /// @EagerSingleton(types: [])
-/// @Factor
+/// @Factory
 ```
-
-Eager dependencies will be resolved when the `DependencyContainer` is bootstrapped. Remaining depedencies will be initialsed when being resolved for the first time.
-
-The factory of a dependency will always return a new instance. 
 
 ### Step 2: Create a Composition Root
 
-This is the entry point of your depdencies setup. 
+This is the entry point of your depdencies. 
 
-All it takes is an object that confirms to the `AutoSetup` protocol, which requires one property: the `DependencyContainer`.
+All it takes is an object that confirms to the `AutoSetup` protocol.
 
 ```swift
 import SwiftDependencyContainer
@@ -64,11 +57,11 @@ struct MyDependencies: AutoSetup {
 }
 ```
 
-### Step 4: Bootstrap your Dependencies
+### Step 3: Bootstrap your Dependencies
 
 After building your project, all necessary code for registering and resolving dependencies will be automatically generated and available.
 
-To bootstrap your `DependencyContainer` call the `setup` method of your composition root type.
+To bootstrap your `DependencyContainer` call the `setup` method of your type implementing `AutoSetup`.
 
 ```swift
 MyDependencies.setup()
@@ -76,57 +69,54 @@ MyDependencies.setup()
 
 Note: You won't be able to register any more dependencies after `setup` has been called.
 
-### Step 5: Access your Dependencies
+### Step 4: Access your Dependencies
 
 At this point you are ready to go. No more code that needs to be written!
 
 There are two ways to access your dependencies:
+
+```swift
+/// @Singleton
+class MyType {}
+```
 
 **Direct Access**
 
 All your dependencies have a `resolve` method, which can be used to get the instance from the `DependencyContainer`.
 
 ```swift
-/// @Singleton
-class MyType {}
-
 MyType.resolve() // generated
-```
-
-```swift
-/// @Factory
-class MyType {}
-
-MyType.create() // generated
 ```
 
 **Composition Root Access**
 
-All your dependencies are also available statically at your composition root.
+Every registered dependency is also available as `static var` at your type implementing `AutoSetup`.
 
 ```swift
-class MyDependencies: AutoSetup {}
-
-MyDependencies.myType           // generated using @Singleton
-
-MyDependencies.createMyType()   // generate using @Factory
+MyDependencies.myType // generated
 ```
 
-### Step 6 (Optional): Manually register Dependencies
+### Step 5 (Optional): Manually register Dependencies
 
-`AutoSetup` is great and convinient but some scenarios require more flexibility.
+`AutoSetup` is great and convinient, but some scenarios require more flexibility.
 
-Manually register dependencies if needed by overrideing the optional `override` method.
+Manually register dependencies if needed by overrideing the optional `override` method of the `AutoSetup` protocol.
 
 ```swift
-func override(_ container: DependencyContainer) throws {
-    try container.register(Storage.self) { UserDefaults() } // register
-}
+struct MyDependencies: AutoSetup {
+    let container = DependencyContainer()
     
-static var storage: Storage { resolve() } // resolve
+    func override(_ container: DependencyContainer) throws {
+        try container.register(Storage.self) { UserDefaults() } // register
+    }
+    
+    static var storage: Storage { resolve() } // resolve
+}
 ```
 
-Note: Please feel free to open a ticket if you feel like the usage of your `override` should be part of this framework. Happy to learn more :)
+Note: Please feel free to open a ticket if you feel like the usage of your `override` should be part of this framework!
+
+Take a look at [Examples](Examples.swift) for more details.
 
 ## Manual-Setup
 
