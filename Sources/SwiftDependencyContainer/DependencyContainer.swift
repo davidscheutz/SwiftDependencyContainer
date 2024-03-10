@@ -66,13 +66,13 @@ public final class DependencyContainer {
     }
 
     public func bootstrap() throws {
+        bootstrapped = true
+        
         try dependencies.forEach {
             if eagerKeys.contains($0.key) {
                 _ = try $0.value.resolve(self)
             }
         }
-        
-        bootstrapped = true
     }
     
     // MARK: - Private
