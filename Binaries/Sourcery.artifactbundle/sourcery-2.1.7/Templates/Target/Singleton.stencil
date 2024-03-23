@@ -1,0 +1,91 @@
+// Template name: Singleton
+// Template version: 1.0
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+{% macro generateInitializer initializer resolver %}
+    {% if initializer.parameters.count > 0 %}
+        {{ type.name }}(
+            {% for parameter in initializer.parameters %}
+            {{ parameter.name }}: {{ resolver }}{% ifnot forloop.last %}, {% endif %}
+            {% endfor %}
+        )
+        {% else %}
+        {{ type.name }}()
+    {% endif %}
+{% endmacro %}
+
+import Foundation
+import SwiftDependencyContainer
+
+{% macro isEager annotation -%}
+    {%- if annotation|contains:"Eager" -%}true{%- else -%}false{%- endif -%}
+{%- endmacro %}
+
+{% macro parseTypes annotation -%}
+    {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:",",".self,"|replace:"])",".self" }}
+{%- endmacro %}
+
+{% macro generateDependecyResolver type needsPrefix parent %}
+    public static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
+        {{ parent }}.resolve()
+    }
+{% endmacro %}
+
+/*
+    Examples:
+    /// @EagerSingleton(types: [MyAbstraction])
+    /// @Singleton(types: [MyAbstraction])
+    /// @EagerSingleton
+    /// @Singleton
+*/
+{% for type in types.all %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        {% call includeImports type %}
+extension {{ type.name }} {
+    {% for initializer in type.allMethods|initializer %}
+    public static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
+        {% if comment|contains:"(types:" %}
+        try container.register([{% call parseTypes comment %}], isEager: isEager) {
+        {% call generateInitializer initializer "try $0.resolve()" %}
+        }
+        {% else %}
+        try container.register(isEager: isEager) {
+        {% call generateInitializer initializer "try $0.resolve()" %}
+        }
+        {% endif %}
+    }
+        {% break %}
+    {% endfor %}
+    
+    {% if type.allMethods|initializer|count == 0 %}
+    public static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
+        {% if comment|contains:"(types:" %}
+        try container.register([{% call parseTypes comment %}], isEager: isEager) {
+    {% call generateInitializer initializer "try $0.resolve()" %}
+        }
+        {% else %}
+        try container.register(isEager: isEager) { {{ type.name }}() }
+        {% endif %}
+    }
+    {% endif %}
+    
+    {% if types.based.AutoSetup|count == 1 %}
+        {% if comment|contains:"(types:" %}
+            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|split: ", " %}
+                {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name %}
+            {% endfor %}
+        {% else %}
+            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name %}
+        {% endif %}
+    {% endif %}
+}
+
+    {% endif %}
+  {% endfor %}
+{% endfor %}

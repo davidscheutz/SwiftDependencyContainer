@@ -1,0 +1,58 @@
+// Template name: Factory
+// Template version: 1.0
+
+{% macro emptyFactory type %}
+    public static func create() -> {{ type.name }} {
+        {{ type.name }}()
+    }
+{% endmacro %}
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+import SwiftDependencyContainer
+
+/*
+    Examples:
+    /// @Factory
+    /// @Factory([MyAbstraction]) // TODO
+*/
+{% for type in types.classes %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Factory" %}
+        {% call includeImports type %}
+extension {{ type.name }} {
+    {% if type.allMethods|initializer|count > 1 %}
+    // ⚠️ Warning: Generating factory methods for more than one constructor isn't supported at the moment
+}
+        {% break %}
+    {% endif %}
+    
+    {% if type.allMethods|initializer|count == 0 %}
+        {% call emptyFactory type %}
+}
+        {% break %}
+    {% endif %}
+    
+    {% for initializer in type.allMethods|initializer %}
+        {% if initializer.parameters.count == 0 %}
+            {% call emptyFactory type %}
+            {% break %}
+        {% endif %}
+    
+        // TODO: find a more effetive solution
+        // TODO: broken due to Global strategy
+    public static func create(
+        _ container: DependencyContainer
+    ) -> {{ type.name }} {
+    {{ type.name }}({%- for parameter in initializer.parameters %}{{ parameter.name}}: try! container.resolve(){{ ", " if not forloop.last }}{% endfor -%})
+    }
+        {% break %}
+    {% endfor %}
+}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
