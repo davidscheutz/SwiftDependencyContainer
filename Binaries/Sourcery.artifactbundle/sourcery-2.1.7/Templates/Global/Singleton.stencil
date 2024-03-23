@@ -19,9 +19,6 @@ import {{ import }}
     {% endif %}
 {% endmacro %}
 
-import Foundation
-import SwiftDependencyContainer
-
 {% macro isEager annotation -%}
     {%- if annotation|contains:"Eager" -%}true{%- else -%}false{%- endif -%}
 {%- endmacro %}
@@ -36,17 +33,17 @@ import SwiftDependencyContainer
     }
 {% endmacro %}
 
-/*
-    Examples:
-    /// @EagerSingleton(types: [MyAbstraction])
-    /// @Singleton(types: [MyAbstraction])
-    /// @EagerSingleton
-    /// @Singleton
-*/
 {% for type in types.all %}
   {% for comment in type.documentation %}
     {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-        {% call includeImports type %}
+// sourcery:file:{{ type.name}}
+
+{% call includeImports type %}
+import SwiftDependencyContainer
+{% for import in argument.imports %}
+import {{ import }}
+{% endfor %}
+
 extension {{ type.name }} {
     {% for initializer in type.allMethods|initializer %}
     public static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
@@ -85,7 +82,7 @@ extension {{ type.name }} {
         {% endif %}
     {% endif %}
 }
-
+// sourcery:end
     {% endif %}
   {% endfor %}
 {% endfor %}
