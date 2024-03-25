@@ -57,7 +57,13 @@ extension {{ root.name}} {
     {% endfor %}
     
     static func resolve<T>() -> T {
-        try! shared.container.resolve()
+        try! container.resolve()
+    }
+    
+    func resolve<T>() -> T {
+        {{ root.name }}.resolve()
+    }
+    
     }
 }
     {% break %}
