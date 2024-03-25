@@ -1,7 +1,7 @@
 // Template name: AutoSetup
 // Template version: 1.0
 
-import Foundation
+import SwiftUI
 import SwiftDependencyContainer
 {% for import in argument.imports %}
 import {{ import }}
@@ -21,7 +21,7 @@ import {{ import }}
 {%- endmacro %}
 
 {% for root in types.based.AutoSetup %}
-extension {{ root.name}} {
+extension {{ root.name }} {
     private static let shared = {{ root.name }}() // TODO: check for empty constructor
     
     public static var container: DependencyContainer { shared.container }
@@ -64,6 +64,8 @@ extension {{ root.name}} {
         {{ root.name }}.resolve()
     }
     
+    static func apply<Result: View>(@ViewBuilder context: (Resolvable) -> Result) -> some View {
+        context(shared)
     }
 }
     {% break %}
