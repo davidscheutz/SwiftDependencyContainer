@@ -11,7 +11,11 @@ import {{ import }}
     {% if initializer.parameters.count > 0 %}
         {{ type.name }}(
             {% for parameter in initializer.parameters %}
+                {% if parameter.typeName.name == "Resolvable" %}
+            {{ parameter.name }}: container.resolver(){% ifnot forloop.last %}, {% endif %}
+                {% else %}
             {{ parameter.name }}: {{ resolver }}{% ifnot forloop.last %}, {% endif %}
+                {% endif %}
             {% endfor %}
         )
         {% else %}

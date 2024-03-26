@@ -1,0 +1,27 @@
+// Template name: Resolvable
+// Template version: 1.0
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+
+{% for type in types.all %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+    
+{% call includeImports type %}
+import SwiftDependencyContainer
+
+extension {{ type.name }} {
+    static func resolve(
+        _ resolver: Resolvable
+    ) -> {{ type.name }} {
+        resolver.resolve()
+    }
+}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
