@@ -65,7 +65,7 @@ extension {{ root.name }} {
     }
     
     static func apply<Result: View>(@ViewBuilder context: (Resolvable) -> Result) -> some View {
-        context((shared as? Resolvable) ?? container.resolver())
+        context(shared)
     }
 }
     {% break %}
