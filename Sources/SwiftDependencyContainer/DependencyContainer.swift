@@ -11,6 +11,10 @@ public final class DependencyContainer {
         case unknown(key: String, error: Error)
     }
     
+    public enum OverrideError: Error {
+        case notRegistered
+    }
+    
     public enum RegisterError: Error {
         case missingKey
         case alreadyBootstrapped(keys: String)
@@ -61,6 +65,10 @@ public final class DependencyContainer {
         try resolve(using: keyValue(for: T.self))
     }
     
+    public func resolve<T>(_ type: T.Type) throws -> T {
+        try resolve(using: keyValue(for: type))
+    }
+    
     public func resolve<T>(_ key: AnyHashable) throws -> T {
         try resolve(using: keyValue(from: key))
     }
@@ -73,6 +81,22 @@ public final class DependencyContainer {
                 _ = try $0.value.resolve(self)
             }
         }
+    }
+    
+    public func override<R, T>(_ replace: R.Type, _ resolve: @escaping () -> T) throws {
+        try override(replace, { _ in resolve() })
+    }
+    
+    public func override<R, T>(_ replace: R.Type, _ resolve: @escaping Resolver<T>) throws {
+        try override(key: keyValue(for: replace), resolve)
+    }
+    
+    public func override<T>(_ key: AnyHashable, _ resolve: @escaping () -> T) throws {
+        try override(key, { _ in resolve() })
+    }
+    
+    public func override<T>(_ key: AnyHashable, _ resolve: @escaping Resolver<T>) throws {
+        try override(key: keyValue(from: key), resolve)
     }
     
     // MARK: - Private
@@ -127,6 +151,13 @@ public final class DependencyContainer {
         }
         
         return dependency
+    }
+    
+    private func override<T>(key: Key, _ override: @escaping Resolver<T>) throws {
+        guard dependencies.keys.contains(key) else {
+            throw OverrideError.notRegistered
+        }
+        dependencies[key] = AnyContainer(resolver: override)
     }
     
     // MARK: - Helper
