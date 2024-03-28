@@ -64,6 +64,23 @@ extension {{ root.name }} {
         {{ root.name }}.resolve()
     }
     
+    /// resolves every registered singleton, shouldn't be used in production!
+    static func verifyResolvability() throws {
+    {% for type in types.all %}
+        {% for comment in type.documentation %}
+            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
+                {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+        _ = try shared.container.resolve({{ type }}.self)
+                {% endfor %}
+            {% else %}
+                {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        _ = try shared.container.resolve({{ type.name }}.self)
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    }
+    
     static func apply<Result: View>(@ViewBuilder context: (Resolvable) -> Result) -> some View {
         context(shared)
     }
