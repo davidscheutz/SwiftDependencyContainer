@@ -67,6 +67,8 @@ extension SwiftDependencyContainerPlugin: XcodeBuildToolPlugin {
                 templates.appending(subpath: isGlobal ? "Global" : "Target"),
                 "--args",
                 "imports=[\(imports)]",
+                "--args",
+                "target=\(target.displayName)",
                 "--sources",
                 isGlobal ? root : root.appending(subpath: target.displayName),
                 "--output",

@@ -8,7 +8,7 @@
 {% endmacro %}
 
 {% macro includeImports type %}
-    {% for import in type.imports %}
+    {% for import in type.imports where import != argument.target %}
 import {{ import }}
     {% endfor %}
 {% endmacro %}
