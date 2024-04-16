@@ -24,6 +24,7 @@ public class {{ argument.target }}Container {
     public static func verifyResolvability(_ container: DependencyContainer) throws {
     {% for type in types.all %}
         {% for comment in type.documentation %}
+            // TODO: support new registrations @Singleton(MyType)
             {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
                 {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
         _ = try container.resolve({{ type }}.self)
@@ -59,7 +60,7 @@ public class {{ argument.target }}Container {
 {%- endmacro %}
 
 {% macro parseTypes annotation -%}
-    {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:",",".self,"|replace:"])",".self" }}
+    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:",",".self,"|replace:"]",""|replace:")",".self" }}
 {%- endmacro %}
 
 {% for type in types.all %}
@@ -74,7 +75,7 @@ import {{ import }}
 extension {{ type.name }} {
     {% for initializer in type.allMethods|initializer %}
     static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
-        {% if comment|contains:"(types:" %}
+        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
         try container.register([{% call parseTypes comment %}], isEager: isEager) {
         {% call generateInitializer initializer "try $0.resolve()" %}
         }
@@ -89,7 +90,7 @@ extension {{ type.name }} {
     
     {% if type.allMethods|initializer|count == 0 %}
     static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
-        {% if comment|contains:"(types:" %}
+        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
         try container.register([{% call parseTypes comment %}], isEager: isEager) {
     {% call generateInitializer initializer "try $0.resolve()" %}
         }
