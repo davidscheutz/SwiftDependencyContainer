@@ -32,6 +32,10 @@ import {{ import }}
     {% endfor %}
 {% endmacro %}
 
+{% macro rawTypes annotation -%}
+    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:"]",""|replace:")","" }}
+{%- endmacro %}
+
 {% macro generateDependecyResolver type needsPrefix parent isPublic %}
     {%- if isPublic == "true" %}public {% endif -%}static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
         {{ parent }}.resolve()
@@ -41,13 +45,29 @@ import {{ import }}
 {% for type in types.all %}
   {% for comment in type.documentation %}
     {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        {% if types.based.AutoSetup|count == 1 %}
 // sourcery:file:{{ type.name}}
 
 import SwiftDependencyContainer
-{% call includeImports type %}
+    {% call includeImports type %}
+
+extension {{ types.based.AutoSetup.first.name }} {
+        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
+            {% set innerTypes %}{% call rawTypes comment %}{% endset %}
+            
+            {% for innerType in innerTypes|split: ", " %}
+    static var {{ innerType|lowerFirstLetter }}: {{ innerType }} {
+        {{ type.name }}.resolve{{ innerType }}()
+    }
+            {% endfor %}
+        {% else %}
+    {% if type.accessLevel == "public" %}public {% endif %}static var {{ type.name|lowerFirstLetter }}: {{ type.name }} {
+        {{ type.name }}.resolve()
+    }
+        {% endif %}
+}
 
 extension {{ type.name }} {
-    {% if types.based.AutoSetup|count == 1 %}
         {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
             {% set innerTypes %}{% call rawTypes comment %}{% endset %}
             {% set isPublic %}{{ type.accessLevel == "public" }}{% endset %}
@@ -57,9 +77,9 @@ extension {{ type.name }} {
         {% else %}
             {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name isPublic %}
         {% endif %}
-    {% endif %}
 }
 // sourcery:end
+        {% endif %}
     {% endif %}
   {% endfor %}
 {% endfor %}
