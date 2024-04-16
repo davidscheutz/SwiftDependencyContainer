@@ -27,7 +27,7 @@ extension SwiftDependencyContainerPlugin: XcodeBuildToolPlugin {
         let targetCommand = command(
             for: target,
             isGlobal: false,
-            imports: "\"\(target.displayName)\"",
+            imports: "",
             executable: toolPath.path,
             templates: templatesPath,
             root: context.xcodeProject.directory,

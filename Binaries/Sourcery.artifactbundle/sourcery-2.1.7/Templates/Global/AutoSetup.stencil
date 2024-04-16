@@ -31,20 +31,18 @@ extension {{ root.name }} {
     fatalError("There can only be one instance implementing 'AutoSetup'!")
     {% endif %}
         let container = shared.container
-    {% for type in types.all %}
-        {% for comment in type.documentation %}
-            {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-        try! {{ type.name }}.register(in: container)
-            {% endif %}
+        
+        try! {{ argument.target }}Container.register(using: container)
+        {% for import in argument.imports %}
+        try! {{ import }}Container.register(using: container)
         {% endfor %}
-    {% endfor %}
     
         try! shared.override(container)
  
         try! container.bootstrap()
     }
     
-    {% for type in types.all %}
+    {% for type in types.all where type.accessLevel == "public" %}
         {% for comment in type.documentation %}
             {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
                 {% call generateDependecyVariableFromTypes comment root.name %}
@@ -66,18 +64,9 @@ extension {{ root.name }} {
     
     /// resolves every registered singleton, shouldn't be used in production!
     static func verifyResolvability() throws {
-    {% for type in types.all %}
-        {% for comment in type.documentation %}
-            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
-                {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
-        _ = try shared.container.resolve({{ type }}.self)
-                {% endfor %}
-            {% else %}
-                {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-        _ = try shared.container.resolve({{ type.name }}.self)
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+        try {{ argument.target }}Container.verifyResolvability(shared.container)
+    {% for import in argument.imports %}
+        try {{ import }}Container.verifyResolvability(shared.container)
     {% endfor %}
     }
     
