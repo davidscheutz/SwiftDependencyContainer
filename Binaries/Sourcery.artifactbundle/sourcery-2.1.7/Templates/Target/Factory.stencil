@@ -13,18 +13,24 @@ import {{ import }}
     {% endfor %}
 {% endmacro %}
 
-import SwiftDependencyContainer
+{% macro initParameters parameters resolver %}
+    {% for parameter in parameters %}
+        {% if parameter|annotated:"configurable" %}
+            {{ parameter.name}}: {{ parameter.name}}{{ ", " if not forloop.last }}
+        {% else %}
+            {{ parameter.name}}: {{ resolver }}{{ ", " if not forloop.last }}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
 
-/*
-    Examples:
-    /// @Factory
-    /// @Factory([MyAbstraction]) // TODO
-*/
 {% for type in types.classes %}
   {% for comment in type.documentation %}
     {% if comment|contains:"@Factory" %}
         {% call includeImports type %}
+import SwiftDependencyContainer
+
 extension {{ type.name }} {
+
     {% if type.allMethods|initializer|count > 1 %}
     // ⚠️ Warning: Generating factory methods for more than one constructor isn't supported at the moment
 }
@@ -43,13 +49,41 @@ extension {{ type.name }} {
             {% break %}
         {% endif %}
     
-        // TODO: find a more effetive solution
-        // TODO: broken due to Global strategy
+    {% if types.based.AutoSetup|count == 1 %}
+    // Single target project or composition root
     public static func create(
-        _ container: DependencyContainer
-    ) -> {{ type.name }} {
-    {{ type.name }}({%- for parameter in initializer.parameters %}{{ parameter.name}}: try! container.resolve(){{ ", " if not forloop.last }}{% endfor -%})
+        {% for parameter in initializer.parameters %}
+            {{ parameter.name }}: {{ parameter.typeName }}
+            {%- for resolvableType in types.all %}
+                {%- for resolvableAnnotation in resolvableType.documentation where resolvableAnnotation|contains:"Singleton" %}
+                    {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name or resolvableAnnotation|contains:"(types" and resolvableAnnotation|contains:parameter.typeName %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
+                {% endfor -%}
+            {% endfor -%}
+            {{ ", " if not forloop.last }}
+        {% endfor %}
+        ) -> {{ type.name }} {
+        {{ type.name }}({%- for parameter in initializer.parameters %}{{ parameter.name}}: {{ parameter.name}}{{ ", " if not forloop.last }}{% endfor -%})
     }
+    {% else %}
+    // Potentially project with multiple targets
+    public static func create(
+        {% for parameter in initializer.parameters where parameter|annotated:"configurable" %}{{ parameter.name }}: {{ parameter.typeName }},{% endfor %}
+        using resolver: Resolvable
+    ) -> {{ type.name }} {
+        {{ type.name }}(
+        {% call initParameters initializer.parameters "resolver.resolve()" %}
+        )
+    }
+    
+    public static func create(
+        {% for parameter in initializer.parameters where parameter|annotated:"configurable" %}{{ parameter.name }}: {{ parameter.typeName }},{% endfor %}
+        with container: DependencyContainer
+    ) -> {{ type.name }} {
+        {{ type.name }}(
+        {% call initParameters initializer.parameters "try! container.resolve()" %}
+        )
+    }
+    {% endif %}
         {% break %}
     {% endfor %}
 }

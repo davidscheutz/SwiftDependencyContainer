@@ -25,3 +25,39 @@ extension {{ type.name }} {
     {% endif %}
   {% endfor %}
 {% endfor %}
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+{% macro generateDependecyResolver type needsPrefix parent %}
+    public static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
+        {{ parent }}.resolve()
+    }
+{% endmacro %}
+
+{% for type in types.all %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+// sourcery:file:{{ type.name}}
+
+import SwiftDependencyContainer
+{% call includeImports type %}
+
+extension {{ type.name }} {
+    {% if types.based.AutoSetup|count == 1 %}
+        {% if comment|contains:"(types:" %}
+            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|split: ", " %}
+                {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name %}
+            {% endfor %}
+        {% else %}
+            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name %}
+        {% endif %}
+    {% endif %}
+}
+// sourcery:end
+    {% endif %}
+  {% endfor %}
+{% endfor %}

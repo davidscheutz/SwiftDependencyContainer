@@ -1,11 +1,42 @@
-// Template name: Singleton
+// Template name: AutoSetup
 // Template version: 1.0
 
-{% macro includeImports type %}
-    {% for import in type.imports %}
+import SwiftDependencyContainer
+
+{% macro addImports %}
+{% for import in argument.imports where import != argument.target %}
 import {{ import }}
-    {% endfor %}
+{% endfor %}
 {% endmacro %}
+
+public class {{ argument.target }}Container {
+    public static func register(using container: DependencyContainer) throws {
+    {% for type in types.all %}
+        {% for comment in type.documentation %}
+            {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        try {{ type.name }}.register(in: container)
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    }
+    
+    /// resolves every registered singleton, shouldn't be used in production!
+    public static func verifyResolvability(_ container: DependencyContainer) throws {
+    {% for type in types.all %}
+        {% for comment in type.documentation %}
+            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
+                {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+        _ = try container.resolve({{ type }}.self)
+                {% endfor %}
+            {% else %}
+                {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        _ = try container.resolve({{ type.name }}.self)
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    }
+}
 
 {% macro generateInitializer initializer resolver %}
     {% if initializer.parameters.count > 0 %}
@@ -31,26 +62,18 @@ import {{ import }}
     {{ annotation|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:",",".self,"|replace:"])",".self" }}
 {%- endmacro %}
 
-{% macro generateDependecyResolver type needsPrefix parent %}
-    public static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
-        {{ parent }}.resolve()
-    }
-{% endmacro %}
-
 {% for type in types.all %}
   {% for comment in type.documentation %}
     {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-// sourcery:file:{{ type.name}}
 
-{% call includeImports type %}
-import SwiftDependencyContainer
-{% for import in argument.imports %}
+{% call addImports %}
+{% for import in type.imports where import != argument.target %}
 import {{ import }}
 {% endfor %}
 
 extension {{ type.name }} {
     {% for initializer in type.allMethods|initializer %}
-    public static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
+    static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
         {% if comment|contains:"(types:" %}
         try container.register([{% call parseTypes comment %}], isEager: isEager) {
         {% call generateInitializer initializer "try $0.resolve()" %}
@@ -65,7 +88,7 @@ extension {{ type.name }} {
     {% endfor %}
     
     {% if type.allMethods|initializer|count == 0 %}
-    public static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
+    static func register(in container: DependencyContainer, isEager: Bool = {% call isEager comment %}) throws {
         {% if comment|contains:"(types:" %}
         try container.register([{% call parseTypes comment %}], isEager: isEager) {
     {% call generateInitializer initializer "try $0.resolve()" %}
@@ -75,18 +98,7 @@ extension {{ type.name }} {
         {% endif %}
     }
     {% endif %}
-    
-    {% if types.based.AutoSetup|count == 1 %}
-        {% if comment|contains:"(types:" %}
-            {% for innerType in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|split: ", " %}
-                {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name %}
-            {% endfor %}
-        {% else %}
-            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name %}
-        {% endif %}
-    {% endif %}
 }
-// sourcery:end
     {% endif %}
   {% endfor %}
 {% endfor %}
