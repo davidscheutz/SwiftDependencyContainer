@@ -7,7 +7,7 @@ public final class DependencyContainer {
     public enum ResolveError<T>: Error {
         case notBootstrapped
         case typeMismatch(actual: String)
-        case notRegistered
+        case notRegistered(key: String)
         case unknown(key: String, error: Error)
     }
     
@@ -134,8 +134,7 @@ public final class DependencyContainer {
         }
         
         guard let container = dependencies[key] else {
-            throw ResolveError<T>.notRegistered
-            //.create(key: key, type: T.self, reason: "Dependency not registered!")
+            throw ResolveError<T>.notRegistered(key: key.description)
         }
         
         let resolved: Any
