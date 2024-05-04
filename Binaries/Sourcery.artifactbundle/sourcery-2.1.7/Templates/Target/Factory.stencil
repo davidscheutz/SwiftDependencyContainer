@@ -68,7 +68,7 @@ extension {{ type.name }} {
     // Potentially project with multiple targets
     public static func create(
         {% for parameter in initializer.parameters where parameter|annotated:"configurable" %}{{ parameter.name }}: {{ parameter.typeName }},{% endfor %}
-        using resolver: Resolvable
+        using resolver: Resolver
     ) -> {{ type.name }} {
         {{ type.name }}(
         {% call initParameters initializer.parameters "resolver.resolve()" %}

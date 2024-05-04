@@ -70,7 +70,7 @@ extension {{ root.name }} {
     {% endfor %}
     }
     
-    static func apply<Result: View>(@ViewBuilder context: (Resolvable) -> Result) -> some View {
+    static func apply<Result: View>(@ViewBuilder context: (Resolver) -> Result) -> some View {
         context(shared)
     }
 }

@@ -43,7 +43,7 @@ public class {{ argument.target }}Container {
     {% if initializer.parameters.count > 0 %}
         {{ type.name }}(
             {% for parameter in initializer.parameters %}
-                {% if parameter.typeName.name == "Resolvable" %}
+                {% if parameter.typeName.name == "Resolver" %}
             {{ parameter.name }}: container.resolver(){% ifnot forloop.last %}, {% endif %}
                 {% else %}
                     {% set isPrimitiveType %}{% call isPrimitiveType parameter %}{% endset %}

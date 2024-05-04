@@ -17,7 +17,7 @@ import SwiftDependencyContainer
 
 extension {{ type.name }} {
     static func resolve(
-        _ resolver: Resolvable
+        _ resolver: Resolver
     ) -> {{ type.name }} {
         resolver.resolve()
     }

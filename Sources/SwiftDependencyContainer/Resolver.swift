@@ -1,10 +1,10 @@
 import Foundation
 
-public protocol Resolvable {
+public protocol Resolver {
     func resolve<T>() -> T
 }
 
-internal struct DependencyResolver: Resolvable {
+internal struct DependencyResolver: Resolver {
     let container: DependencyContainer
     
     func resolve<T>() -> T {
@@ -13,7 +13,7 @@ internal struct DependencyResolver: Resolvable {
 }
 
 extension DependencyContainer {
-    public func resolver() -> Resolvable {
+    public func resolver() -> Resolver {
         DependencyResolver(container: self)
     }
 }

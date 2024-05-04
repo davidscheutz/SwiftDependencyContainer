@@ -2,7 +2,7 @@ import Foundation
 
 public final class DependencyContainer {
 
-    public typealias Resolver<T> = (DependencyContainer) throws -> T
+    public typealias BootstrapResolver<T> = (DependencyContainer) throws -> T
         
     public enum ResolveError<T>: Error {
         case notBootstrapped
@@ -36,11 +36,11 @@ public final class DependencyContainer {
         try register(types, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         try register([type], isEager: isEager, bootstrap: bootstrap)
     }
     
-    public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         let keys = types.map { keyValue(for: $0) }
         try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
     }
@@ -49,7 +49,7 @@ public final class DependencyContainer {
         try register(isEager: isEager) { _ in bootstrap() }
     }
     
-    public func register<T>(isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T>(isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         try register(T.self, isEager: isEager, bootstrap: bootstrap)
     }
     
@@ -57,7 +57,7 @@ public final class DependencyContainer {
         try register(key, isEager: isEager) { _ in bootstrap() }
     }
     
-    public func register<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    public func register<T>(_ key: AnyHashable, isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         try register([keyValue(from: key)], isEager: isEager, bootstrap: bootstrap)
     }
     
@@ -87,7 +87,7 @@ public final class DependencyContainer {
         try override(replace, { _ in resolve() })
     }
     
-    public func override<R, T>(_ replace: R.Type, _ resolve: @escaping Resolver<T>) throws {
+    public func override<R, T>(_ replace: R.Type, _ resolve: @escaping BootstrapResolver<T>) throws {
         try override(key: keyValue(for: replace), resolve)
     }
     
@@ -95,13 +95,13 @@ public final class DependencyContainer {
         try override(key, { _ in resolve() })
     }
     
-    public func override<T>(_ key: AnyHashable, _ resolve: @escaping Resolver<T>) throws {
+    public func override<T>(_ key: AnyHashable, _ resolve: @escaping BootstrapResolver<T>) throws {
         try override(key: keyValue(from: key), resolve)
     }
     
     // MARK: - Private
     
-    private func register<T>(_ keys: Set<Key>, isEager: Bool = false, bootstrap: @escaping Resolver<T>) throws {
+    private func register<T>(_ keys: Set<Key>, isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         guard !bootstrapped else {
             throw RegisterError.alreadyBootstrapped(keys: keys.map { $0.description }.joined(separator: ","))
         }
@@ -152,7 +152,7 @@ public final class DependencyContainer {
         return dependency
     }
     
-    private func override<T>(key: Key, _ override: @escaping Resolver<T>) throws {
+    private func override<T>(key: Key, _ override: @escaping BootstrapResolver<T>) throws {
         guard dependencies.keys.contains(key) else {
             throw OverrideError.notRegistered
         }
