@@ -9,6 +9,14 @@ import {{ import }}
 {% endfor %}
 {% endmacro %}
 
+{% macro hasTypeInformation comment -%}
+    {%- if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" -%}true{%- else -%}false{%- endif -%}
+{%- endmacro %}
+
+{% macro parseTypes annotation -%}
+    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:",",".self,"|replace:"]",""|replace:")",".self" }}
+{%- endmacro %}
+
 public class {{ argument.target }}Container {
     public static func register(using container: DependencyContainer) throws {
     {% for type in types.all %}
@@ -24,16 +32,22 @@ public class {{ argument.target }}Container {
     public static func verifyResolvability(_ container: DependencyContainer) throws {
     {% for type in types.all %}
         {% for comment in type.documentation %}
-            // TODO: support new registrations @Singleton(MyType)
-            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
-                {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+        {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+            {% set hasTypeInformation %}{% call hasTypeInformation comment %}{% endset %}
+            {% if hasTypeInformation == "true" %}
+                {% if comment|contains:"types:" %}
+                    {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
         _ = try container.resolve({{ type }}.self)
-                {% endfor %}
+                    {% endfor %}
+                {% else %}
+        _ = try container.resolve({% call parseTypes comment %})
+                {% endif %}
             {% else %}
                 {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
         _ = try container.resolve({{ type.name }}.self)
                 {% endif %}
             {% endif %}
+        {% endif %}
         {% endfor %}
     {% endfor %}
     }
@@ -64,17 +78,9 @@ public class {{ argument.target }}Container {
     {%- if annotation|contains:"Eager" -%}true{%- else -%}false{%- endif -%}
 {%- endmacro %}
 
-{% macro hasTypeInformation comment -%}
-    {%- if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" -%}true{%- else -%}false{%- endif -%}
-{%- endmacro %}
-
 {% macro isPrimitiveType parameter -%}
     {% set typeName %}{{ parameter.unwrappedTypeName }}{% endset %}
     {%- if typeName == "TimeInterval" or typeName == "Double" or typeName == "Float" or typeName == "Date" or typeName == "Bool" or typeName == "Character" -%}true{%- else -%}false{%- endif -%}
-{%- endmacro %}
-
-{% macro parseTypes annotation -%}
-    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:",",".self,"|replace:"]",""|replace:")",".self" }}
 {%- endmacro %}
 
 {% for type in types.all %}
