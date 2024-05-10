@@ -275,6 +275,28 @@ class DependencyContainerTests: XCTestCase {
             }
         }
     }
+    
+    func test_overrideRegisteredDependency() throws {
+        var singleton1 = SingletonImpl1()
+        try sut.register { singleton1 }
+        
+        try sut.register(Singleton.self) { SingletonImpl1() }
+        
+        try sut.bootstrap()
+        
+        try sut.override(Singleton.self) {
+            let other: SingletonImpl1 = try $0.resolve()
+            return SingletonImpl2(other: other)
+        }
+        
+        let resolved: Singleton = try sut.resolve()
+        XCTAssertTrue((resolved as? SingletonImpl2)?.other === singleton1)
+        
+        singleton1 = SingletonImpl1()
+        try sut.override(Singleton.self) { singleton1 }
+        
+        XCTAssertTrue(singleton1 === (try sut.resolve(Singleton.self)))
+    }
 }
 
 // MARK: - Helper

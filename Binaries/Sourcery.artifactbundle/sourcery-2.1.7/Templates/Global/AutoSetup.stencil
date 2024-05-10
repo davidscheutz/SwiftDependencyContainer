@@ -1,0 +1,78 @@
+// Template name: AutoSetup
+// Template version: 1.0
+
+import SwiftUI
+import SwiftDependencyContainer
+{% for import in argument.imports %}
+import {{ import }}
+{% endfor %}
+
+/*
+    AutoSetup
+*/
+{% macro generateDependecyVariable type parent %}
+    static var {{ type|lowerFirstLetter }}: {{ type }} { resolve() }
+{%- endmacro %}
+
+{% macro generateDependecyVariableFromTypes annotation parent %}
+    {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
+        {% call generateDependecyVariable type root.name %}
+    {% endfor %}
+{%- endmacro %}
+
+{% for root in types.based.AutoSetup %}
+extension {{ root.name }} {
+    private static let shared = {{ root.name }}() // TODO: check for empty constructor
+    
+    public static var container: DependencyContainer { shared.container }
+    
+    static func setup() {
+    {% if types.based.AutoSetup|count > 1 %}
+    fatalError("There can only be one instance implementing 'AutoSetup'!")
+    {% endif %}
+        let container = shared.container
+        
+        try! {{ argument.target }}Container.register(using: container)
+        {% for import in argument.imports %}
+        try! {{ import }}Container.register(using: container)
+        {% endfor %}
+    
+        try! shared.override(container)
+ 
+        try! container.bootstrap()
+    }
+    
+    {% for type in types.all where type.accessLevel == "public" %}
+        {% for comment in type.documentation %}
+            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
+                {% call generateDependecyVariableFromTypes comment root.name %}
+            {% else %}
+                {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+                    {% call generateDependecyVariable type.name root.name %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    
+    static func resolve<T>() -> T {
+        try! container.resolve()
+    }
+    
+    func resolve<T>() -> T {
+        {{ root.name }}.resolve()
+    }
+    
+    /// resolves every registered singleton, shouldn't be used in production!
+    static func verifyResolvability() throws {
+        try {{ argument.target }}Container.verifyResolvability(shared.container)
+    {% for import in argument.imports %}
+        try {{ import }}Container.verifyResolvability(shared.container)
+    {% endfor %}
+    }
+    
+    static func apply<Result: View>(@ViewBuilder context: (Resolver) -> Result) -> some View {
+        context(shared)
+    }
+}
+    {% break %}
+{% endfor %}

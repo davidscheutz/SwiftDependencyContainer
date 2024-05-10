@@ -2,7 +2,7 @@ import Foundation
 
 internal final class AnyContainer {
     
-    typealias AnyResolver = DependencyContainer.Resolver<Any>
+    typealias AnyResolver = DependencyContainer.BootstrapResolver<Any>
     
     private let resolver: AnyResolver
     // TODO: would be cool to use lazy with completion as constructor

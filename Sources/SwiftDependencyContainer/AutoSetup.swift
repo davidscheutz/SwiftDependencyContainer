@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol AutoSetup {
+public protocol AutoSetup: Resolver {
     var container: DependencyContainer { get }
     
     func override(_ container: DependencyContainer) throws

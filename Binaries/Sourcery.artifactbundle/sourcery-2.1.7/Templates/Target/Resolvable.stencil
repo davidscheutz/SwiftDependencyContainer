@@ -1,0 +1,85 @@
+// Template name: Resolvable
+// Template version: 1.0
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+
+{% for type in types.all %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+    
+{% call includeImports type %}
+import SwiftDependencyContainer
+
+extension {{ type.name }} {
+    static func resolve(
+        _ resolver: Resolver
+    ) -> {{ type.name }} {
+        resolver.resolve()
+    }
+}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{% macro includeImports type %}
+    {% for import in type.imports %}
+import {{ import }}
+    {% endfor %}
+{% endmacro %}
+
+{% macro rawTypes annotation -%}
+    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:"]",""|replace:")","" }}
+{%- endmacro %}
+
+{% macro generateDependecyResolver type needsPrefix parent isPublic %}
+    {%- if isPublic == "true" %}public {% endif -%}static func resolve{%- if needsPrefix -%}{{ type }}{%- endif -%}() -> {{ type }} {
+        {{ parent }}.resolve()
+    }
+{% endmacro %}
+
+{% for type in types.all %}
+  {% for comment in type.documentation %}
+    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+        {% if types.based.AutoSetup|count == 1 %}
+// sourcery:file:{{ type.name}}
+
+import SwiftDependencyContainer
+    {% call includeImports type %}
+
+extension {{ types.based.AutoSetup.first.name }} {
+        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
+            {% set innerTypes %}{% call rawTypes comment %}{% endset %}
+            
+            {% for innerType in innerTypes|split: ", " %}
+    static var {{ innerType|lowerFirstLetter }}: {{ innerType }} {
+        {{ type.name }}.resolve{{ innerType }}()
+    }
+            {% endfor %}
+        {% else %}
+    {% if type.accessLevel == "public" %}public {% endif %}static var {{ type.name|lowerFirstLetter }}: {{ type.name }} {
+        {{ type.name }}.resolve()
+    }
+        {% endif %}
+}
+
+extension {{ type.name }} {
+        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
+            {% set innerTypes %}{% call rawTypes comment %}{% endset %}
+            {% set isPublic %}{{ type.accessLevel == "public" }}{% endset %}
+            {% for innerType in innerTypes|split: ", " %}
+            {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name isPublic %}
+            {% endfor %}
+        {% else %}
+            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name isPublic %}
+        {% endif %}
+}
+// sourcery:end
+        {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}

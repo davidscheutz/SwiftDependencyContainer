@@ -23,8 +23,7 @@ final class SingletonImpl2: BaseSingleton, Singleton2 {
     
     let created: Date = .init()
     let id = "2"
-    
-    private let other: Singleton
+    let other: Singleton
     
     init(other: Singleton) {
         self.other = other
