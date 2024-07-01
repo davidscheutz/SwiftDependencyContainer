@@ -1,13 +1,13 @@
 import Foundation
 
-protocol Singleton: AnyObject {
+protocol TestSingleton: AnyObject {
     var id: String { get }
     var created: Date { get }
     var className: String { get }
 }
 
-protocol Singleton1: Singleton {}
-protocol Singleton2: Singleton {}
+protocol Singleton1: TestSingleton {}
+protocol Singleton2: TestSingleton {}
 
 final class SingletonImpl1: BaseSingleton, Singleton1 {
     
@@ -23,9 +23,9 @@ final class SingletonImpl2: BaseSingleton, Singleton2 {
     
     let created: Date = .init()
     let id = "2"
-    let other: Singleton
+    let other: TestSingleton
     
-    init(other: Singleton) {
+    init(other: TestSingleton) {
         self.other = other
     }
 }
