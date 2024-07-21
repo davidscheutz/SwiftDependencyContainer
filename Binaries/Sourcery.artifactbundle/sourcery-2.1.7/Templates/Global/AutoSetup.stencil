@@ -14,12 +14,6 @@ import {{ import }}
     static var {{ type|lowerFirstLetter }}: {{ type }} { resolve() }
 {%- endmacro %}
 
-{% macro generateDependecyVariableFromTypes annotation parent %}
-    {% for type in comment|replace:"@Singleton(types: [",""|replace:"@EagerSingleton(types: [",""|replace:"])",""|replace:".self",""|split: ", " %}
-        {% call generateDependecyVariable type root.name %}
-    {% endfor %}
-{%- endmacro %}
-
 {% for root in types.based.AutoSetup %}
 extension {{ root.name }} {
     private static let shared = {{ root.name }}() // TODO: check for empty constructor
@@ -43,11 +37,16 @@ extension {{ root.name }} {
     }
     
     {% for type in types.all where type.accessLevel == "public" %}
-        {% for comment in type.documentation %}
-            {% if comment|contains:"@Singleton(types:" or comment|contains:"@EagerSingleton(types:" %}
-                {% call generateDependecyVariableFromTypes comment root.name %}
+
+        {% for attribute, objects in type.attributes %}
+            {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
+
+            {% if additionaltypeInfo != "" %}
+                {% for type in additionalTypeInfo|replace:".self",""|split: ", " %}
+                {% call generateDependecyVariable type root.name %}
+                {% endfor %}
             {% else %}
-                {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+                {% if attribute == "Singleton" %}
                     {% call generateDependecyVariable type.name root.name %}
                 {% endif %}
             {% endif %}

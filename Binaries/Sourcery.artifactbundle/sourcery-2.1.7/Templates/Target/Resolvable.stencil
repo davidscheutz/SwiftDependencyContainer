@@ -9,11 +9,11 @@ import {{ import }}
 
 
 {% for type in types.all %}
-  {% for comment in type.documentation %}
-    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
-    
+
+  {% for attribute, obj in type.attributes %}
+    {% if attribute == "Singleton" %}
+
 {% call includeImports type %}
-import SwiftDependencyContainer
 
 extension {{ type.name }} {
     static func resolve(
@@ -33,7 +33,7 @@ import {{ import }}
 {% endmacro %}
 
 {% macro rawTypes annotation -%}
-    {{ annotation|replace:"@Singleton(",""|replace:"types: [",""|replace:"@EagerSingleton(",""|replace:"types: [",""|replace:"]",""|replace:")","" }}
+    {{ annotation|replace:".self","" }}
 {%- endmacro %}
 
 {% macro generateDependecyResolver type needsPrefix parent isPublic %}
@@ -43,8 +43,8 @@ import {{ import }}
 {% endmacro %}
 
 {% for type in types.all %}
-  {% for comment in type.documentation %}
-    {% if comment|contains:"@Singleton" or comment|contains:"@EagerSingleton" %}
+  {% for attribute, objects in type.attributes %}
+    {% if attribute == "Singleton" %}
         {% if types.based.AutoSetup|count == 1 %}
 // sourcery:file:{{ type.name}}
 
@@ -52,8 +52,11 @@ import SwiftDependencyContainer
     {% call includeImports type %}
 
 extension {{ types.based.AutoSetup.first.name }} {
-        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
-            {% set innerTypes %}{% call rawTypes comment %}{% endset %}
+
+{% set additionalTypeInfo %}{{ objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" }}{% endset %}
+
+    {% if additionalTypeInfo != "" %}
+            {% set innerTypes %}{% call rawTypes additionalTypeInfo %}{% endset %}
             
             {% for innerType in innerTypes|split: ", " %}
     static var {{ innerType|lowerFirstLetter }}: {{ innerType }} {
@@ -68,14 +71,14 @@ extension {{ types.based.AutoSetup.first.name }} {
 }
 
 extension {{ type.name }} {
-        {% if comment|contains:"(types:" or comment|replace:"@Singleton",""|replace:"@EagerSingleton",""|replace:"(",""|replace:")","" != "" %}
-            {% set innerTypes %}{% call rawTypes comment %}{% endset %}
+        {% if additionalTypeInfo != "" %}
+            {% set innerTypes %}{% call rawTypes additionalTypeInfo %}{% endset %}
             {% set isPublic %}{{ type.accessLevel == "public" }}{% endset %}
             {% for innerType in innerTypes|split: ", " %}
-            {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name isPublic %}
+    {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name isPublic %}
             {% endfor %}
         {% else %}
-            {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name isPublic %}
+    {% call generateDependecyResolver type.name false types.based.AutoSetup.first.name isPublic %}
         {% endif %}
 }
 // sourcery:end
