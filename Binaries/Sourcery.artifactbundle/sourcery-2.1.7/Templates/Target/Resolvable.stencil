@@ -58,7 +58,7 @@ extension {{ types.based.AutoSetup.first.name }} {
     {% if additionalTypeInfo != "" %}
             {% set innerTypes %}{% call rawTypes additionalTypeInfo %}{% endset %}
             
-            {% for innerType in innerTypes|split: ", " %}
+            {% for innerType in innerTypes|split: "," %}
     static var {{ innerType|lowerFirstLetter }}: {{ innerType }} {
         {{ type.name }}.resolve{{ innerType }}()
     }
@@ -74,7 +74,7 @@ extension {{ type.name }} {
         {% if additionalTypeInfo != "" %}
             {% set innerTypes %}{% call rawTypes additionalTypeInfo %}{% endset %}
             {% set isPublic %}{{ type.accessLevel == "public" }}{% endset %}
-            {% for innerType in innerTypes|split: ", " %}
+            {% for innerType in innerTypes|split: "," %}
     {% call generateDependecyResolver innerType true types.based.AutoSetup.first.name isPublic %}
             {% endfor %}
         {% else %}

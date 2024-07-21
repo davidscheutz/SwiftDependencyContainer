@@ -36,8 +36,8 @@ public class {{ argument.target }}Container {
             {% set hasTypeInformation %}{% call hasTypeInformation objects[0].description %}{% endset %}
             {% if hasTypeInformation == "true" %}
                 {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
-                {% for type in additionalTypeInfo|replace:".self",""|split: ", " %}
-        _ = try container.resolve({{ type }}.self)
+                {% for type in additionalTypeInfo|split: "," %}
+        _ = try container.resolve({{ type }})
                 {% endfor %}
             {% else %}
         _ = try container.resolve({{ type.name }}.self)
