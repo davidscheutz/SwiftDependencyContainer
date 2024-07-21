@@ -24,10 +24,9 @@ import {{ import }}
 {% endmacro %}
 
 {% for type in types.classes %}
-  {% for comment in type.documentation %}
-    {% if comment|contains:"@Factory" %}
+  {% for attribute in type.attributes %}
+    {% if attribute == "Factory" %}
         {% call includeImports type %}
-import SwiftDependencyContainer
 
 extension {{ type.name }} {
 

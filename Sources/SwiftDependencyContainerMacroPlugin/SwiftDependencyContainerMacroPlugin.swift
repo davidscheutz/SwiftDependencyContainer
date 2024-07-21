@@ -5,6 +5,7 @@ import Foundation
 @main
 struct SwiftDependencyContainerMacroPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
-        SingletonMacro.self
+        SingletonMacro.self,
+        FactoryMacro.self
     ]
 }

@@ -4,25 +4,37 @@ import XCTest
 
 #if canImport(SwiftDependencyContainerMacroPlugin)
 import SwiftDependencyContainerMacroPlugin
-
-let testMacros: [String: Macro.Type] = [
-    "Singleton": SingletonMacro.self
-]
 #endif
 
 final class SwiftDependencyContainerMacroPluginTests: XCTestCase {
-    func test() throws {
+    func test_emptySingletonMacro() throws {
         #if canImport(SwiftDependencyContainerMacroPlugin)
         assertMacroExpansion("""
             @Singleton
             class MyClass() {}
             """,
             expandedSource: """
-            /// cool
             @Singleton
             class MyClass() {}
             """,
-            macros: testMacros
+            macros: ["Singleton": SingletonMacro.self]
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+    
+    func test_emptyFactoryMacro() throws {
+        #if canImport(SwiftDependencyContainerMacroPlugin)
+        assertMacroExpansion("""
+            @Factory
+            class MyClass() {}
+            """,
+            expandedSource: """
+            @Factory
+            class MyClass() {}
+            """,
+            macros: ["Factory": FactoryMacro.self]
         )
         #else
         throw XCTSkip("macros are only supported when running tests for the host platform")
