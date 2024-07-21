@@ -54,8 +54,8 @@ extension {{ type.name }} {
         {% for parameter in initializer.parameters %}
             {{ parameter.name }}: {{ parameter.typeName }}
             {%- for resolvableType in types.all %}
-                {%- for resolvableAnnotation in resolvableType.documentation where resolvableAnnotation|contains:"Singleton" %}
-                    {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name or resolvableAnnotation|contains:"(types" and resolvableAnnotation|contains:parameter.typeName %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
+                {%- for resolvableAnnotation, objects in resolvableType.attributes where resolvableAnnotation == "Singleton" %}
+                    {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name or objects[0].description|contains:".self" and objects[0].description|contains:parameter.typeName %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
                 {% endfor -%}
             {% endfor -%}
             {{ ", " if not forloop.last }}
