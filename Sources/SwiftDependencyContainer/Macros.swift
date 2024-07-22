@@ -19,9 +19,6 @@ public macro Singleton(
 /// A `@Factory` autogenerates the code to register and resolve a single instance of that specific type.
 ///
 ///
-/// - Parameters:
-///   - types: Specifies the types that the instance will be registered with. If the parameter isn't provided, the instance type will be used.
 @attached(peer, names: named(Factory))
-public macro Factory(
-    _ types: Any.Type... = []
-) = #externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "FactoryMacro")
+public macro Factory() =
+#externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "FactoryMacro")
