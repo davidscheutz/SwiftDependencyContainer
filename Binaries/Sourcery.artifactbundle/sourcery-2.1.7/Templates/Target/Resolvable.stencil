@@ -51,11 +51,12 @@ import {{ import }}
 import SwiftDependencyContainer
     {% call includeImports type %}
 
+{% set additionalTypeInfo %}{{ objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"autoRegister:",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" }}{% endset %}
+
+{% if not objects[0].description|replace:" ",""|contains:"autoRegister:false" %}
 extension {{ types.based.AutoSetup.first.name }} {
 
-{% set additionalTypeInfo %}{{ objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" }}{% endset %}
-
-    {% if additionalTypeInfo != "" %}
+    {% if additionalTypeInfo != "" and not objects[0].description|replace:" ",""|contains:"autoRegister:false" %}
             {% set innerTypes %}{% call rawTypes additionalTypeInfo %}{% endset %}
             
             {% for innerType in innerTypes|split: "," %}
@@ -67,8 +68,9 @@ extension {{ types.based.AutoSetup.first.name }} {
     {% if type.accessLevel == "public" %}public {% endif %}static var {{ type.name|lowerFirstLetter }}: {{ type.name }} {
         {{ type.name }}.resolve()
     }
-        {% endif %}
+    {% endif %}
 }
+{% endif %}
 
 extension {{ type.name }} {
         {% if additionalTypeInfo != "" %}

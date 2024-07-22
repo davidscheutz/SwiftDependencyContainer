@@ -10,7 +10,7 @@ import {{ import }}
 {% endmacro %}
 
 {% macro hasTypeInformation description -%}
-    {%- if description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" != "" -%}true{%- else -%}false{%- endif -%}
+    {%- if description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"autoRegister:",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" != "" -%}true{%- else -%}false{%- endif -%}
 {%- endmacro %}
 
 {% macro parseTypes description -%}
@@ -20,8 +20,8 @@ import {{ import }}
 public class {{ argument.target }}Container {
     public static func register(using container: DependencyContainer) throws {
     {% for type in types.all %}
-        {% for attribute in type.attributes %}
-            {% if attribute == "Singleton" %}
+        {% for attribute, objects in type.attributes %}
+            {% if attribute == "Singleton" and not objects[0].description|replace:" ",""|contains:"autoRegister:false" %}
         try {{ type.name }}.register(in: container)
             {% endif %}
         {% endfor %}
@@ -35,7 +35,7 @@ public class {{ argument.target }}Container {
         {% if attribute == "Singleton" %}
             {% set hasTypeInformation %}{% call hasTypeInformation objects[0].description %}{% endset %}
             {% if hasTypeInformation == "true" %}
-                {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
+                {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"autoRegister:",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
                 {% for type in additionalTypeInfo|split: "," %}
         _ = try container.resolve({{ type }})
                 {% endfor %}
@@ -83,7 +83,7 @@ public class {{ argument.target }}Container {
     {% if attribute == "Singleton" %}
         {% set hasTypeInformation %}{% call hasTypeInformation objects[0].description %}{% endset %}
     
-        {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
+        {% set additionalTypeInfo %}{{objects[0].description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"autoRegister:",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ",""}}{% endset %}
 
 {% call addImports %}
 {% for import in type.imports where import != argument.target %}

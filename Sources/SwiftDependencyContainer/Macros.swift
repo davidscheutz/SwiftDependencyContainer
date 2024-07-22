@@ -5,10 +5,12 @@
 ///
 /// - Parameters:
 ///   - isEager: Specifies whether the instance will be resolved during the bootstrapping of the dependency container or once accessed.
+///   - autoRegister: Specifies whether the instance will be registered automtically with all init parameters injected or manually by the user.
 ///   - types: Specifies the types that the instance will be registered with. If the parameter isn't provided, the instance type will be used.
 @attached(peer, names: named(Singleton))
 public macro Singleton(
     isEager: Bool = false,
+    autoRegister: Bool = true,
     _ types: Any.Type... = []
 ) = #externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "SingletonMacro")
 
