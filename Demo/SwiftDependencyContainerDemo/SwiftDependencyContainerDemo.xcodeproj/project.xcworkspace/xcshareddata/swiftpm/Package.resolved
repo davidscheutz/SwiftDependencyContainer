@@ -1,0 +1,24 @@
+{
+  "originHash" : "89df15b1b3e4dc0ae8c60c13c869e265fab636a617c7417248ea18ce95699490",
+  "pins" : [
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax.git",
+      "state" : {
+        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
+        "version" : "509.1.1"
+      }
+    },
+    {
+      "identity" : "swiftdependencycontainer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/davidscheutz/SwiftDependencyContainer.git",
+      "state" : {
+        "branch" : "feature/swift-macros-support",
+        "revision" : "8907b2c476a76009668e97911005964377000056"
+      }
+    }
+  ],
+  "version" : 3
+}

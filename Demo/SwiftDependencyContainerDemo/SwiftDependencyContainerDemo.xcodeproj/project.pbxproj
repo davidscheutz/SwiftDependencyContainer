@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B91E43A02D09D41900BAA801 /* SwiftDependencyContainer in Frameworks */ = {isa = PBXBuildFile; productRef = B91E439F2D09D41900BAA801 /* SwiftDependencyContainer */; };
 		B995016A2B9CB4BF00F83048 /* SwiftDependencyContainer in Frameworks */ = {isa = PBXBuildFile; productRef = B99501692B9CB4BF00F83048 /* SwiftDependencyContainer */; };
 		B9D8BC302B7FA395003A211C /* DemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D8BC2F2B7FA395003A211C /* DemoApp.swift */; };
 		B9D8BC322B7FA395003A211C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D8BC312B7FA395003A211C /* ContentView.swift */; };
@@ -50,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B91E43A02D09D41900BAA801 /* SwiftDependencyContainer in Frameworks */,
 				B9D8BC5F2B7FA444003A211C /* SwiftDependencyContainer in Frameworks */,
 				B995016A2B9CB4BF00F83048 /* SwiftDependencyContainer in Frameworks */,
 			);
@@ -137,12 +139,13 @@
 			buildRules = (
 			);
 			dependencies = (
-				B9D9C7712B7FA68700B15BA8 /* PBXTargetDependency */,
+				B91E43A22D09D49900BAA801 /* PBXTargetDependency */,
 			);
 			name = SwiftDependencyContainerDemo;
 			packageProductDependencies = (
 				B9D8BC5E2B7FA444003A211C /* SwiftDependencyContainer */,
 				B99501692B9CB4BF00F83048 /* SwiftDependencyContainer */,
+				B91E439F2D09D41900BAA801 /* SwiftDependencyContainer */,
 			);
 			productName = SwiftDependencyContainerDemo;
 			productReference = B9D8BC2C2B7FA395003A211C /* SwiftDependencyContainerDemo.app */;
@@ -195,7 +198,7 @@
 			);
 			mainGroup = B9D8BC232B7FA395003A211C;
 			packageReferences = (
-				B99501682B9CB4BF00F83048 /* XCLocalSwiftPackageReference "../.." */,
+				B91E439E2D09D41900BAA801 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */,
 			);
 			productRefGroup = B9D8BC2D2B7FA395003A211C /* Products */;
 			projectDirPath = "";
@@ -251,14 +254,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		B91E43A22D09D49900BAA801 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = B91E43A12D09D49900BAA801 /* SwiftDependencyContainerPlugin */;
+		};
 		B9D8BC3F2B7FA397003A211C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B9D8BC2B2B7FA395003A211C /* SwiftDependencyContainerDemo */;
 			targetProxy = B9D8BC3E2B7FA397003A211C /* PBXContainerItemProxy */;
-		};
-		B9D9C7712B7FA68700B15BA8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = B9D9C7702B7FA68700B15BA8 /* SwiftDependencyContainerPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -531,25 +534,28 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		B99501682B9CB4BF00F83048 /* XCLocalSwiftPackageReference "../.." */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../..;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
-		B9D9C76D2B7FA67A00B15BA8 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */ = {
+		B91E439E2D09D41900BAA801 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/davidscheutz/SwiftDependencyContainer.git";
 			requirement = {
-				branch = master;
+				branch = "feature/swift-macros-support";
 				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B91E439F2D09D41900BAA801 /* SwiftDependencyContainer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B91E439E2D09D41900BAA801 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */;
+			productName = SwiftDependencyContainer;
+		};
+		B91E43A12D09D49900BAA801 /* SwiftDependencyContainerPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B91E439E2D09D41900BAA801 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */;
+			productName = "plugin:SwiftDependencyContainerPlugin";
+		};
 		B99501692B9CB4BF00F83048 /* SwiftDependencyContainer */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftDependencyContainer;
@@ -557,11 +563,6 @@
 		B9D8BC5E2B7FA444003A211C /* SwiftDependencyContainer */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftDependencyContainer;
-		};
-		B9D9C7702B7FA68700B15BA8 /* SwiftDependencyContainerPlugin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B9D9C76D2B7FA67A00B15BA8 /* XCRemoteSwiftPackageReference "SwiftDependencyContainer" */;
-			productName = "plugin:SwiftDependencyContainerPlugin";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

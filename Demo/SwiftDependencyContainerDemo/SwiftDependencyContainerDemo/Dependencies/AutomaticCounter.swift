@@ -1,6 +1,7 @@
 import Foundation
+import SwiftDependencyContainer
 
-/// @Factory
+@Factory
 final class AutomaticCounter: ObservableObject, Identifiable {
     
     @Published private(set) var count = 0

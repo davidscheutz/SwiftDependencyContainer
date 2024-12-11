@@ -1,7 +1,8 @@
 import Foundation
 import Combine
+import SwiftDependencyContainer
 
-/// @EagerSingleton
+@Singleton(isEager: true)
 final class Clock: ObservableObject {
     @Published private(set) var formattedTime = ""
     
