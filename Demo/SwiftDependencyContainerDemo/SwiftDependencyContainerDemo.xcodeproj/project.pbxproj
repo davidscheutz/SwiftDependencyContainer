@@ -539,7 +539,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/davidscheutz/SwiftDependencyContainer.git";
 			requirement = {
-				branch = "feature/swift-macros-support";
+				branch = master;
 				kind = branch;
 			};
 		};

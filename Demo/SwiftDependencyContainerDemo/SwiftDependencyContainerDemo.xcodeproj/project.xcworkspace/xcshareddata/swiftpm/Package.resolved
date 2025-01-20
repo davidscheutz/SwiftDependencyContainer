@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/davidscheutz/SwiftDependencyContainer.git",
       "state" : {
-        "branch" : "feature/swift-macros-support",
-        "revision" : "8907b2c476a76009668e97911005964377000056"
+        "branch" : "master",
+        "revision" : "b65f69330f31c4cbf259d2daa406f4cb9b99e874"
       }
     }
   ],
