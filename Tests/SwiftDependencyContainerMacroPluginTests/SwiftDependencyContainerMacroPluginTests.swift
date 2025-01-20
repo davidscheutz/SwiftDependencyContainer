@@ -11,11 +11,10 @@ final class SwiftDependencyContainerMacroPluginTests: XCTestCase {
         #if canImport(SwiftDependencyContainerMacroPlugin)
         assertMacroExpansion("""
             @Singleton
-            class MyClass() {}
+            class MyClass {}
             """,
             expandedSource: """
-            @Singleton
-            class MyClass() {}
+            class MyClass {}
             """,
             macros: ["Singleton": SingletonMacro.self]
         )
@@ -28,11 +27,10 @@ final class SwiftDependencyContainerMacroPluginTests: XCTestCase {
         #if canImport(SwiftDependencyContainerMacroPlugin)
         assertMacroExpansion("""
             @Factory
-            class MyClass() {}
+            class MyClass {}
             """,
             expandedSource: """
-            @Factory
-            class MyClass() {}
+            class MyClass {}
             """,
             macros: ["Factory": FactoryMacro.self]
         )
