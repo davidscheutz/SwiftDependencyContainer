@@ -5,49 +5,78 @@
 
 # Code Generation powered Dependency Container
 
-`SwiftDependencyContainer` is a lightweight Dependency Container leveraging code generation to make setting up and managing dependencies easier than ever.
+`SwiftDependencyContainer` is a lightweight Dependency Container leveraging [Swift Macros](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/macros/) and code generation to make setting up and managing dependencies easier than ever.
 
 ## Features
 
 #### - Life Cycles
 
-Objects registered as `Singleton` are retained throughout the container's' lifetime, once resolved. Marked as eager will create the instance immediately, when the `bootstrap` method is called. Objects registered as `Factory` will return a new instance every time it's being resolved.
+**Singleton** objects are retained throughout the container's' lifetime. They are instantiated on demand when first accessed, or, if marked as `eager`, created when the container is bootstrapped.
+
+**Factory** instances of the registered type are created each time they are resolved.
 
 #### - Auto-wiring
 
-Required dependencies to instantiate an object using constructor injection can be auto-wired, assuming they are registered in the container.
+Dependencies required to instantiate an object using constructor injection are automatically resolved, provided they are registered in the container.
 
 #### - Type forwarding
 
-Register one instance for multiple types, allowing for more flexible and maintainable code.
+Register a single instance for multiple types, allowing for more flexible and maintainable code.
 
 #### - Named definitions
 
-Manage dependencies using hashable keys, enabling registering different implementations for the same protocol or tpye.
+Manage dependencies with hashable keys, enabling the registration of different implementations for the same protocol or tpye.
 
-## Auto-Setup
+## Installation
+
+### 1. Add Swift Package
+You can use the [Swift Package Manager](https://swift.org/package-manager/) to install `SwiftDependencyContainer` by adding it as a dependency to your `Package.swift` file:
+
+```swift
+dependencies: [
+    .package(url: "git@github.com:davidscheutz/SwiftDependencyContainer.git", from: "0.5.0")
+]
+```
+
+Make sure to add `SwiftDependencyContainer` as a dependency to your Target.
+
+### 2. Add SwiftDependencyContainer CodeGeneratorPlugin as Build Tool Plugin
+
+Select your Project -> Your Target -> Build Phases -> Add CodeGeneratorPlugin (SwiftDependencyContainer)
+
+The code generation process now runs automatically during the build phase, every time you compile your project.
+
+## Auto-Setup 🪄
  
 For a magical setup experience thanks to code generation.
 
-[Examples](Examples.swift) contains a demonstration for each use case. 
+[Examples](Examples.swift) demonstrate each use case. 
 
-### Step 1: Annotate your Dependencies
+### Step 1: Register your Dependencies
 
-You can use the following annotiations for automatic dependency resolution:
+Use the following annotiations to register your dependencies:
 
 ```swift
-/// @Singleton
-/// @EagerSingleton
-/// @Singleton(types: [])
-/// @EagerSingleton(types: [])
-/// @Factory
+@Singleton
+@Singleton(isEager: true)       // Instantiated when container is bootstrapped rather than at first access
+@Singleton(MyProtocol.self)     // Register dependency for additional types
+class MyClass {
+    init(otherDependency: OtherClass) {} // Auto-inject supported
+}
+```
+
+```swift
+@Factory
+class MyBuilder {
+    init(otherDependency: OtherClass) {} // Auto-inject supported
+}
 ```
 
 ### Step 2: Create a Composition Root
 
 This is the entry point of your depdencies. 
 
-All it takes is an object that confirms to the `AutoSetup` protocol.
+Simply define an object that conforms to the `AutoSetup` protocol.
 
 ```swift
 import SwiftDependencyContainer
@@ -59,64 +88,58 @@ struct MyDependencies: AutoSetup {
 
 ### Step 3: Bootstrap your Dependencies
 
-After building your project, all necessary code for registering and resolving dependencies will be automatically generated and available.
+Once your project is built, the necessary code for registering and resolving dependencies will be automatically generated and ready to use.
 
-To bootstrap your `DependencyContainer` call the `setup` method of your type implementing `AutoSetup`.
+To bootstrap your `DependencyContainer` call the `setup` method on your type that implements the `AutoSetup` protocol.
 
 ```swift
 MyDependencies.setup()
 ```
 
-Note: You won't be able to register any more dependencies after `setup` has been called.
+Note: After calling `setup`, you will no longer be able to register additional dependencies.
 
 ### Step 4: Access your Dependencies
 
-At this point you are ready to go. No more code that needs to be written!
+At this stage, you're all set! No additional code is required to use your dependencies.
 
-There are two ways to access your dependencies:
-
-```swift
-/// @Singleton
-class MyType {}
-```
+You can access your dependencies in two ways:
 
 **Direct Access**
 
-All your dependencies have a `resolve` method, which can be used to get the instance from the `DependencyContainer`.
+Use the `resolve` method of a registered type to retrieve an instance from the `DependencyContainer`.
 
 ```swift
-MyType.resolve() // generated
+MyType.resolve() // Auto-generated
 ```
 
 **Composition Root Access**
 
-Every registered dependency is also available as `static var` at your type implementing `AutoSetup`.
+Access any registered dependency as a `static var` from your type implementing `AutoSetup`:
 
 ```swift
-MyDependencies.myType // generated
+MyDependencies.myType // Auto-generated
 ```
 
 ### Step 5 (Optional): Manually register Dependencies
 
-`AutoSetup` is great and convinient, but some scenarios require more flexibility.
-
-Manually register dependencies if needed by overrideing the optional `override` method of the `AutoSetup` protocol.
+While `AutoSetup` is convenient, some scenarios may require additional flexibility. In such cases, you can manually register additional dependencies by overriding the optional `override` method of the `AutoSetup` protocol.
 
 ```swift
 struct MyDependencies: AutoSetup {
     let container = DependencyContainer()
     
     func override(_ container: DependencyContainer) throws {
-        try container.register(Storage.self) { UserDefaults() } // register
+        try container.register(Storage.self) { UserDefaults() } // e.g. Register third-party SDKs
     }
     
-    static var storage: Storage { resolve() } // resolve
+    static var storage: Storage { resolve() } // Mimic API of auto-generated types
 }
 ```
 
 Note: Please feel free to open a ticket if you feel like the usage of your `override` should be part of this framework!
+Note: If you have a repetitive use case and believe it should be integrated into this framework, feel free to open a ticket!
 
-Take a look at [Examples](Examples.swift) for more details.
+For more details, check out the [Examples](Examples.swift).
 
 ## Manual-Setup
 
@@ -165,25 +188,6 @@ let singleton1: Singleton1 = try container.resolve("MyKey")
 
 let singleton2: Abstraction2 = try container.resolve()
 ```
-
-## Installation
-
-### 1. Add Swift Package
-You can use the [Swift Package Manager](https://swift.org/package-manager/) to install `SwiftDependencyContainer` by adding it as a dependency to your `Package.swift` file:
-
-```swift
-dependencies: [
-    .package(url: "git@github.com:davidscheutz/SwiftDependencyContainer.git", from: "0.2.0")
-]
-```
-
-Make sure to add `SwiftDependencyContainer` as a dependency to your Target.
-
-### 2. Add SwiftDependencyContainer CodeGeneratorPlugin as Build Tool Plugin
-
-Select your Project -> Your Target -> Build Phases -> Add CodeGeneratorPlugin (SwiftDependencyContainer)
-
-The codegen runs now as part of the build phase, every time you compile your project. 
 
 ## Contributing
 

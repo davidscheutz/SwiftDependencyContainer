@@ -1,4 +1,5 @@
 import Foundation
+import SwiftDependencyContainer
 
 protocol ClockTracking {
     func clockStarted()
@@ -10,7 +11,7 @@ protocol CounterTracking {
 
 protocol Tracking: ClockTracking, CounterTracking {}
 
-/// @Singleton(types: [ClockTracking, CounterTracking])
+@Singleton(ClockTracking.self, CounterTracking.self)
 final class Analytics: Tracking {
     init(tracker: AnalyticsTracker) {}
     

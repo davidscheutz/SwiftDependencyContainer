@@ -6,6 +6,7 @@ public final class DependencyContainer {
         
     public enum ResolveError<T>: Error {
         case notBootstrapped
+        case noDependeciesRegistered
         case typeMismatch(actual: String)
         case notRegistered(key: String)
         case unknown(key: String, error: Error)
@@ -131,6 +132,10 @@ public final class DependencyContainer {
         
         guard bootstrapped else {
             throw ResolveError<T>.notBootstrapped
+        }
+        
+        if dependencies.isEmpty {
+            throw ResolveError<T>.noDependeciesRegistered
         }
         
         guard let container = dependencies[key] else {

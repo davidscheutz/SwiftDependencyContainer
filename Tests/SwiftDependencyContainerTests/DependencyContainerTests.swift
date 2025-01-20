@@ -38,7 +38,7 @@ class DependencyContainerTests: XCTestCase {
             _ = try sut.resolveSingleton(.singleton1)
             XCTFail("Shouldn't be able to resolve a dependency before the container is bootstrapped")
         } catch let error {
-            if case .notBootstrapped = error as? DependencyContainer.ResolveError<Singleton> {
+            if case .notBootstrapped = error as? DependencyContainer.ResolveError<TestSingleton> {
                 // expected
             } else {
                 XCTFail("Unknown error: \(error)")
@@ -138,7 +138,7 @@ class DependencyContainerTests: XCTestCase {
         let _: SingletonImpl1 = try sut.resolve()
         let _: SingletonImpl2 = try sut.resolve()
         
-        let resolvedFailure: Singleton? = try? sut.resolve()
+        let resolvedFailure: TestSingleton? = try? sut.resolve()
         XCTAssertNil(resolvedFailure)
     }
     
@@ -181,10 +181,10 @@ class DependencyContainerTests: XCTestCase {
     
     func test_resolveUnknownObjectThrows() {
         do {
-            let _: Singleton = try sut.resolve(using: .singleton1)
+            let _: TestSingleton = try sut.resolve(using: .singleton1)
             
             XCTFail("Dependency shouldn't be registered!")
-        } catch is DependencyContainer.ResolveError<Singleton> {
+        } catch is DependencyContainer.ResolveError<TestSingleton> {
             // expected
         } catch let error {
             XCTFail("Unknown error: \(error)")
@@ -252,13 +252,13 @@ class DependencyContainerTests: XCTestCase {
     }
     
     func test_multipleTypeInfoWithResolverContext() throws {
-        try sut.register(Singleton.self) { SingletonImpl1() }
+        try sut.register(TestSingleton.self) { SingletonImpl1() }
         
         try sut.register([Singleton2.self, SingletonImpl2.self]) {
             SingletonImpl2(other: try $0.resolve())
         }
         
-        let _: Singleton = try sut.resolve()
+        let _: TestSingleton = try sut.resolve()
         let resolved2_1: Singleton2 = try sut.resolve()
         let resolved2_2: SingletonImpl2 = try sut.resolve()
         
@@ -280,22 +280,38 @@ class DependencyContainerTests: XCTestCase {
         var singleton1 = SingletonImpl1()
         try sut.register { singleton1 }
         
-        try sut.register(Singleton.self) { SingletonImpl1() }
+        try sut.register(TestSingleton.self) { SingletonImpl1() }
         
         try sut.bootstrap()
         
-        try sut.override(Singleton.self) {
+        try sut.override(TestSingleton.self) {
             let other: SingletonImpl1 = try $0.resolve()
             return SingletonImpl2(other: other)
         }
         
-        let resolved: Singleton = try sut.resolve()
+        let resolved: TestSingleton = try sut.resolve()
         XCTAssertTrue((resolved as? SingletonImpl2)?.other === singleton1)
         
         singleton1 = SingletonImpl1()
-        try sut.override(Singleton.self) { singleton1 }
+        try sut.override(TestSingleton.self) { singleton1 }
         
-        XCTAssertTrue(singleton1 === (try sut.resolve(Singleton.self)))
+        XCTAssertTrue(singleton1 === (try sut.resolve(TestSingleton.self)))
+    }
+    
+    @Singleton
+    class AnnotatedClass {}
+    
+    protocol TestAbstraction {}
+    protocol TestProtocol {}
+    
+    @Singleton(TestSingleton.self)
+    class AnnotatedAbstractedClass: TestAbstraction {}
+    
+    @Singleton(TestSingleton.self, TestProtocol.self)
+    class AnnotatedMultipleAbstractedClass: TestAbstraction {}
+    
+    func test_singletonMacro() throws {
+//        _ = try AnnotatedClass.resolve()
     }
 }
 
@@ -316,7 +332,7 @@ extension DependencyContainer {
         try register(TestKey.singleton2, isEager: eager) { SingletonImpl2(other: try $0.resolve(using: .singleton1)) }
     }
     
-    func resolveSingleton(_ key: TestKey) throws -> Singleton {
+    func resolveSingleton(_ key: TestKey) throws -> TestSingleton {
         try resolve(using: key)
     }
     
