@@ -18,6 +18,7 @@ public final class DependencyContainer {
     
     public enum RegisterError: Error {
         case missingKey
+        case aliasAlreadyTaken
         case alreadyBootstrapped(keys: String)
     }
     
@@ -27,7 +28,19 @@ public final class DependencyContainer {
 
     private var dependencies = [Key: AnyContainer]()
     private var eagerKeys = Set<Key>()
+    private var keysAliases = [Key: Key]() // Alias: Source
     private var bootstrapped = false
+    
+    public func register<T, U>(alias: U.Type, for type: T.Type, override: Bool = false) throws {
+        let aliasKey = keyValue(for: alias)
+        
+        let isKnwonAlias = keysAliases.keys.contains(aliasKey)
+        
+        guard !isKnwonAlias || override else {
+            throw RegisterError.aliasAlreadyTaken
+        }
+        register(alias: aliasKey, for: keyValue(for: type))
+    }
     
     public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try register(type, isEager: isEager) { _ in bootstrap() }
@@ -113,15 +126,23 @@ public final class DependencyContainer {
         
         let dependency = AnyContainer(resolver: bootstrap)
         
-        // multiple keys can reference the same dependency
-        keys.forEach { dependencies[$0] = dependency }
+        var keysToRegister = keys
         
-        let eagerKey = keys.first!
+        let sourceKey = keysToRegister.removeFirst()
+        dependencies[sourceKey] = dependency
+        
+        // remaining keys will reference the same dependency as alias
+        keysToRegister.forEach { register(alias: $0, for: sourceKey) }
+        
         if isEager {
-            eagerKeys.insert(eagerKey)
+            eagerKeys.insert(sourceKey)
         } else {
-            eagerKeys.remove(eagerKey)
+            eagerKeys.remove(sourceKey)
         }
+    }
+    
+    private func register(alias aliasKey: Key, for sourceKey: Key) {
+        keysAliases[aliasKey] = sourceKey
     }
     
     private func resolve<T>(using key: Key) throws -> T {
@@ -138,7 +159,9 @@ public final class DependencyContainer {
             throw ResolveError<T>.noDependeciesRegistered
         }
         
-        guard let container = dependencies[key] else {
+        let allKeys = [key] + (keysAliases[key].map { [$0] } ?? [])
+        
+        guard let container = allKeys.lazy.compactMap({ self.dependencies[$0] }).first else {
             throw ResolveError<T>.notRegistered(key: key.description)
         }
         
