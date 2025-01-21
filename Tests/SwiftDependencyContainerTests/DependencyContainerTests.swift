@@ -249,6 +249,28 @@ class DependencyContainerTests: XCTestCase {
         } catch {
             // expected
         }
+        
+        try sut.register(alias: SingletonImpl1.self, for: BaseSingleton.self)
+        
+        let resolved3: SingletonImpl1 = try sut.resolve()
+        XCTAssertTrue(resolved2 === resolved3)
+    }
+    
+    func test_registerAliasForDifferentAlias() throws {
+        try sut.register { SingletonImpl1() }
+        
+        let singleton: SingletonImpl1 = try sut.resolve()
+        
+        try sut.register(alias: BaseSingleton.self, for: type(of: singleton))
+        
+        let resolved1: BaseSingleton = try sut.resolve()
+        
+        try sut.register(alias: Singleton1.self, for: BaseSingleton.self)
+        
+        let resolved2: Singleton1 = try sut.resolve()
+        
+        XCTAssertTrue(resolved1 === singleton)
+        XCTAssertTrue(resolved2 === singleton)
     }
     
     func test_multipleTypeInfoWithResolverContext() throws {

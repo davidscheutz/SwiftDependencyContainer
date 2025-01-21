@@ -39,7 +39,14 @@ public final class DependencyContainer {
         guard !isKnwonAlias || override else {
             throw RegisterError.aliasAlreadyTaken
         }
-        register(alias: aliasKey, for: keyValue(for: type))
+        
+        // resolve all aliases until root
+        var sourceKey = keyValue(for: type)
+        while let source = keysAliases[sourceKey] {
+            sourceKey = source
+        }
+        
+        register(alias: aliasKey, for: sourceKey)
     }
     
     public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
