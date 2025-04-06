@@ -256,6 +256,14 @@ class DependencyContainerTests: XCTestCase {
         XCTAssertTrue(resolved2 === resolved3)
     }
     
+    func test_registerAliasForAbstractedType() throws {
+        try sut.register(BaseSingleton.self) { SingletonImpl1() }
+        
+        try sut.register(alias: Singleton1.self, for: SingletonImpl1.self)
+        
+        let _: Singleton1 = try sut.resolve()
+    }
+    
     func test_registerAliasForDifferentAlias() throws {
         try sut.register { SingletonImpl1() }
         

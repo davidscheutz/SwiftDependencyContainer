@@ -29,6 +29,7 @@ public final class DependencyContainer {
     private var dependencies = [Key: AnyContainer]()
     private var eagerKeys = Set<Key>()
     private var keysAliases = [Key: Key]() // Alias: Source
+    private var hiddenAbstractions = [Key: Key]() // Source: Abstraction
     private var bootstrapped = false
     
     public func register<T, U>(alias: U.Type, for type: T.Type, override: Bool = false) throws {
@@ -42,7 +43,7 @@ public final class DependencyContainer {
         
         // resolve all aliases until root
         var sourceKey = keyValue(for: type)
-        while let source = keysAliases[sourceKey] {
+        while let source = keysAliases[sourceKey] ?? hiddenAbstractions[sourceKey] {
             sourceKey = source
         }
         
@@ -64,6 +65,12 @@ public final class DependencyContainer {
     public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         let keys = types.map { keyValue(for: $0) }
         try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
+        
+        // remember abstracted base type for future alias registrations
+        let abstracted = keyValue(for: T.self)
+        if !keys.contains(abstracted) {
+            hiddenAbstractions[abstracted] = keys[0]
+        }
     }
     
     public func register<T>(isEager: Bool = false, bootstrap: @escaping () -> T) throws {
