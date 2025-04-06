@@ -13,6 +13,14 @@ import {{ import }}
     {% endfor %}
 {% endmacro %}
 
+{% macro searchAutoResolve specificTypes -%}
+    {%- for resolvableType in specificTypes %}
+        {%- for resolvableAnnotation, objects in resolvableType.attributes where resolvableAnnotation == "Singleton" or resolvableAnnotation == "Alias" %}
+            {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name or objects[0].description|contains:".self" and objects[0].description|contains:parameter.typeName %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
+        {% endfor -%}
+    {% endfor -%}
+{%- endmacro %}
+
 {% macro initParameters parameters resolver %}
     {% for parameter in parameters %}
         {% if parameter|annotated:"configurable" %}
@@ -52,15 +60,9 @@ extension {{ type.name }} {
     // Single target project or composition root
     public static func create(
         {% for parameter in initializer.parameters %}
-            {{ parameter.name }}: {{ parameter.typeName }}
-            {%- for resolvableType in types.all %}
-                {%- for resolvableAnnotation, objects in resolvableType.attributes where resolvableAnnotation == "Singleton" %}
-                    {%- if types.based.AutoSetup|count == 1 and parameter.asSource|contains:resolvableType.name or objects[0].description|contains:".self" and objects[0].description|contains:parameter.typeName %} = {{ types.based.AutoSetup.first.name }}.resolve(){% endif -%}
-                {% endfor -%}
-            {% endfor -%}
-            {{ ", " if not forloop.last }}
+        {{ parameter.name }}: {{ parameter.typeName }}{% call searchAutoResolve types.all %}{% call searchAutoResolve types.protocols %}{{ ", " if not forloop.last }}
         {% endfor %}
-        ) -> {{ type.name }} {
+    ) -> {{ type.name }} {
         {{ type.name }}({%- for parameter in initializer.parameters %}{{ parameter.name}}: {{ parameter.name}}{{ ", " if not forloop.last }}{% endfor -%})
     }
     {% else %}

@@ -9,6 +9,20 @@ import {{ import }}
 {% endfor %}
 {% endmacro %}
 
+{% macro registerAlias baseType -%}
+    {% for protocol in types.protocols %}
+        {% for attribute, objects in protocol.attributes %}
+            {% if attribute == "Alias" %}
+                {% set baseTypes %}{{ objects[0].description|replace:" ",""|replace:"[",""|replace:"]",""|replace:"@Alias(for:",""|replace:")",""|replace:".self","" }}{% endset %}
+                {% if baseTypes|contains:baseType %}
+        try container.register(alias: {{protocol.name}}.self, for: Self.self)
+                {% endif %}
+                
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{%- endmacro %}
+
 {% macro hasTypeInformation description -%}
     {%- if description|replace:"@Singleton",""|replace:"(",""|replace:")",""|replace:"autoRegister:",""|replace:"isEager:",""|replace:"true",""|replace:"false",""|replace:" ","" != "" -%}true{%- else -%}false{%- endif -%}
 {%- endmacro %}
@@ -98,11 +112,20 @@ extension {{ type.name }} {
         try container.register({% call parseTypes additionalTypeInfo %}, isEager: isEager) {
         {% call generateInitializer initializer %}
         }
+        
+        {% set additionalTypes %}{% call parseTypes additionalTypeInfo %}{% endset %}
+        
+        {% for additionalType in additionalTypes|replace:" ",""|replace:".self",""|replace:"[",""|replace:"]",""|split: "," %}
+            {% call registerAlias additionalType %}
+        {% endfor %}
+        
         {% else %}
         try container.register(isEager: isEager) {
         {% call generateInitializer initializer %}
         }
         {% endif %}
+        
+        {% call registerAlias type.name %}
     }
         {% break %}
     {% endfor %}
@@ -116,6 +139,7 @@ extension {{ type.name }} {
         {% else %}
         try container.register(isEager: isEager) { {{ type.name }}() }
         {% endif %}
+        {% call registerAlias type.name %}
     }
     {% endif %}
 }
