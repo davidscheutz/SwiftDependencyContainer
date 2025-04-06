@@ -264,6 +264,24 @@ class DependencyContainerTests: XCTestCase {
         let _: Singleton1 = try sut.resolve()
     }
     
+    func test_tryToRegisterAliasForUnknownDependencyInBootstrappedContainer() throws {
+        try sut.register { SingletonImpl1() }
+        
+        try sut.bootstrap()
+        
+        do {
+            try sut.register(alias: Singleton1.self, for: BaseSingleton.self)
+            
+            XCTFail("It shouldn't be possible to register an alias for an unknown source after container is bootstrapped.")
+        } catch {
+            if case .aliasSourceMissing = error as? DependencyContainer.RegisterError {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
+    }
+    
     func test_registerAliasForDifferentAlias() throws {
         try sut.register { SingletonImpl1() }
         
@@ -273,6 +291,7 @@ class DependencyContainerTests: XCTestCase {
         
         let resolved1: BaseSingleton = try sut.resolve()
         
+        // register another alias after container was automatically bootstrapped
         try sut.register(alias: Singleton1.self, for: BaseSingleton.self)
         
         let resolved2: Singleton1 = try sut.resolve()

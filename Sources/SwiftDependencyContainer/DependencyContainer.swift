@@ -19,6 +19,7 @@ public final class DependencyContainer {
     public enum RegisterError: Error {
         case missingKey
         case aliasAlreadyTaken
+        case aliasSourceMissing
         case alreadyBootstrapped(keys: String)
     }
     
@@ -45,6 +46,10 @@ public final class DependencyContainer {
         var sourceKey = keyValue(for: type)
         while let source = keysAliases[sourceKey] ?? hiddenAbstractions[sourceKey] {
             sourceKey = source
+        }
+        
+        if bootstrapped && !dependencies.keys.contains(sourceKey) {
+            throw RegisterError.aliasSourceMissing
         }
         
         register(alias: aliasKey, for: sourceKey)
