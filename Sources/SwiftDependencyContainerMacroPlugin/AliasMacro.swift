@@ -1,8 +1,9 @@
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
-import SwiftSyntax
+import Foundation
 
-public struct FactoryMacro: PeerMacro {
+public struct AliasMacro: PeerMacro {
     public static func expansion(
         of node: AttributeSyntax,
         providingPeersOf declaration: some DeclSyntaxProtocol,
@@ -12,6 +13,6 @@ public struct FactoryMacro: PeerMacro {
          Code generation is still done using Sourcery.
          Plan is to migrate functionality over to Swift macros over time.
          */
-        return []
+        []
     }
 }

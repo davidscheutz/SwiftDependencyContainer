@@ -5,14 +5,13 @@ protocol ClockTracking {
     func clockStarted()
 }
 
+@Alias(for: Analytics.self)
 protocol CounterTracking {
     func counterCreated()
 }
 
-protocol Tracking: ClockTracking, CounterTracking {}
-
-@Singleton(ClockTracking.self, CounterTracking.self)
-final class Analytics: Tracking {
+@Singleton(ClockTracking.self)
+final class Analytics: ClockTracking, CounterTracking {
     init(tracker: AnalyticsTracker) {}
     
     func clockStarted() {

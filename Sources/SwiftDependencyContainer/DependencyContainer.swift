@@ -18,6 +18,8 @@ public final class DependencyContainer {
     
     public enum RegisterError: Error {
         case missingKey
+        case aliasAlreadyTaken
+        case aliasSourceMissing
         case alreadyBootstrapped(keys: String)
     }
     
@@ -27,7 +29,31 @@ public final class DependencyContainer {
 
     private var dependencies = [Key: AnyContainer]()
     private var eagerKeys = Set<Key>()
+    private var keysAliases = [Key: Key]() // Alias: Source
+    private var hiddenAbstractions = [Key: Key]() // Source: Abstraction
     private var bootstrapped = false
+    
+    public func register<T, U>(alias: U.Type, for type: T.Type, override: Bool = false) throws {
+        let aliasKey = keyValue(for: alias)
+        
+        let isKnwonAlias = keysAliases.keys.contains(aliasKey)
+        
+        guard !isKnwonAlias || override else {
+            throw RegisterError.aliasAlreadyTaken
+        }
+        
+        // resolve all aliases until root
+        var sourceKey = keyValue(for: type)
+        while let source = keysAliases[sourceKey] ?? hiddenAbstractions[sourceKey] {
+            sourceKey = source
+        }
+        
+        if bootstrapped && !dependencies.keys.contains(sourceKey) {
+            throw RegisterError.aliasSourceMissing
+        }
+        
+        register(alias: aliasKey, for: sourceKey)
+    }
     
     public func register<T, U>(_ type: U.Type, isEager: Bool = false, bootstrap: @escaping () -> T) throws {
         try register(type, isEager: isEager) { _ in bootstrap() }
@@ -44,6 +70,12 @@ public final class DependencyContainer {
     public func register<T>(_ types: [Any.Type], isEager: Bool = false, bootstrap: @escaping BootstrapResolver<T>) throws {
         let keys = types.map { keyValue(for: $0) }
         try register(Set(keys), isEager: isEager, bootstrap: bootstrap)
+        
+        // remember abstracted base type for future alias registrations
+        let abstracted = keyValue(for: T.self)
+        if !keys.contains(abstracted) {
+            hiddenAbstractions[abstracted] = keys[0]
+        }
     }
     
     public func register<T>(isEager: Bool = false, bootstrap: @escaping () -> T) throws {
@@ -113,15 +145,23 @@ public final class DependencyContainer {
         
         let dependency = AnyContainer(resolver: bootstrap)
         
-        // multiple keys can reference the same dependency
-        keys.forEach { dependencies[$0] = dependency }
+        var keysToRegister = keys
         
-        let eagerKey = keys.first!
+        let sourceKey = keysToRegister.removeFirst()
+        dependencies[sourceKey] = dependency
+        
+        // remaining keys will reference the same dependency as alias
+        keysToRegister.forEach { register(alias: $0, for: sourceKey) }
+        
         if isEager {
-            eagerKeys.insert(eagerKey)
+            eagerKeys.insert(sourceKey)
         } else {
-            eagerKeys.remove(eagerKey)
+            eagerKeys.remove(sourceKey)
         }
+    }
+    
+    private func register(alias aliasKey: Key, for sourceKey: Key) {
+        keysAliases[aliasKey] = sourceKey
     }
     
     private func resolve<T>(using key: Key) throws -> T {
@@ -138,7 +178,9 @@ public final class DependencyContainer {
             throw ResolveError<T>.noDependeciesRegistered
         }
         
-        guard let container = dependencies[key] else {
+        let allKeys = [key] + (keysAliases[key].map { [$0] } ?? [])
+        
+        guard let container = allKeys.lazy.compactMap({ self.dependencies[$0] }).first else {
             throw ResolveError<T>.notRegistered(key: key.description)
         }
         

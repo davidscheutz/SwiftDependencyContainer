@@ -38,4 +38,20 @@ final class SwiftDependencyContainerMacroPluginTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
+    
+    func test_emptyAliasMacro() throws {
+        #if canImport(SwiftDependencyContainerMacroPlugin)
+        assertMacroExpansion("""
+            @Alias
+            class MyClass {}
+            """,
+            expandedSource: """
+            class MyClass {}
+            """,
+            macros: ["Alias": AliasMacro.self]
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
 }

@@ -249,6 +249,55 @@ class DependencyContainerTests: XCTestCase {
         } catch {
             // expected
         }
+        
+        try sut.register(alias: SingletonImpl1.self, for: BaseSingleton.self)
+        
+        let resolved3: SingletonImpl1 = try sut.resolve()
+        XCTAssertTrue(resolved2 === resolved3)
+    }
+    
+    func test_registerAliasForAbstractedType() throws {
+        try sut.register(BaseSingleton.self) { SingletonImpl1() }
+        
+        try sut.register(alias: Singleton1.self, for: SingletonImpl1.self)
+        
+        let _: Singleton1 = try sut.resolve()
+    }
+    
+    func test_tryToRegisterAliasForUnknownDependencyInBootstrappedContainer() throws {
+        try sut.register { SingletonImpl1() }
+        
+        try sut.bootstrap()
+        
+        do {
+            try sut.register(alias: Singleton1.self, for: BaseSingleton.self)
+            
+            XCTFail("It shouldn't be possible to register an alias for an unknown source after container is bootstrapped.")
+        } catch {
+            if case .aliasSourceMissing = error as? DependencyContainer.RegisterError {
+                // expected
+            } else {
+                XCTFail("Unknown error: \(error)")
+            }
+        }
+    }
+    
+    func test_registerAliasForDifferentAlias() throws {
+        try sut.register { SingletonImpl1() }
+        
+        let singleton: SingletonImpl1 = try sut.resolve()
+        
+        try sut.register(alias: BaseSingleton.self, for: type(of: singleton))
+        
+        let resolved1: BaseSingleton = try sut.resolve()
+        
+        // register another alias after container was automatically bootstrapped
+        try sut.register(alias: Singleton1.self, for: BaseSingleton.self)
+        
+        let resolved2: Singleton1 = try sut.resolve()
+        
+        XCTAssertTrue(resolved1 === singleton)
+        XCTAssertTrue(resolved2 === singleton)
     }
     
     func test_multipleTypeInfoWithResolverContext() throws {

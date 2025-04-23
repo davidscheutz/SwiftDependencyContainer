@@ -18,5 +18,17 @@ public macro Singleton(
 ///
 ///
 @attached(peer, names: named(Factory))
-public macro Factory() =
-#externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "FactoryMacro")
+public macro Factory() = #externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "FactoryMacro")
+
+/// Declares a function that can be used to register a type alias.
+///
+/// A `@Alias` autogenerates the code to resolve a dependency using an alias type.
+///
+///
+/// - Parameters:
+///   - types: Specifies the types that the instance will be registered with.
+///
+@attached(peer, names: named(Alias))
+public macro Alias(
+    for types: Any.Type...
+) = #externalMacro(module: "SwiftDependencyContainerMacroPlugin", type: "AliasMacro")
